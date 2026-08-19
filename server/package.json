@@ -1,0 +1,25 @@
+{
+  "name": "campus-job-coach-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "cors": "^2.8.5",
+    "multer": "^1.4.5-lts.1",
+    "unpdf": "^1.8.1",
+    "mammoth": "^1.8.0",
+    "cheerio": "^1.0.0",
+    "ai": "^7.0.66",
+    "@ai-sdk/openai": "^4.0.42",
+    "@ai-sdk/anthropic": "^4.0.39",
+    "@ai-sdk/openai-compatible": "^3.0.31",
+    "zod": "^3.23.8",
+    "nanoid": "^5.0.7",
+    "dotenv": "^16.4.5"
+  }
+}
