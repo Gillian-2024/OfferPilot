@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button, Space, Steps, message, Card, Empty, Alert, Drawer, Input, Typography, Tag, Collapse } from 'antd';
-import { ThunderboltOutlined, ShareAltOutlined, EditOutlined, LinkOutlined, RightOutlined } from '@ant-design/icons';
+import { ThunderboltOutlined, ShareAltOutlined, EditOutlined, FileTextOutlined, LinkOutlined, RightOutlined } from '@ant-design/icons';
 import FileUpload from '../shared/FileUpload';
 import { ResumeResultView, JDResultView } from '../shared/ResultViews';
 import { api } from '../../api/client';
@@ -19,6 +19,11 @@ export default function ResumeAnalysis({ settings, onGotoJD }: { settings: Setti
   const [rwText, setRwText] = useState('');
   const [rwOut, setRwOut] = useState('');
   const [rwLoading, setRwLoading] = useState(false);
+
+  // 自我评价 Drawer
+  const [seOpen, setSeOpen] = useState(false);
+  const [seOut, setSeOut] = useState('');
+  const [seLoading, setSeLoading] = useState(false);
 
   // 对照基准：完整 JD 拆解结果（不是只关键词——简历拆解对照 JD 全画像做 gap 分析）
   const jdResult = getJDResult();
@@ -88,6 +93,31 @@ export default function ResumeAnalysis({ settings, onGotoJD }: { settings: Setti
       message.error(e.message);
     }
     setRwLoading(false);
+  };
+
+  const doSelfEval = async () => {
+    if (!text.trim() && !result) return message.warning('请先拆解简历');
+    setSeLoading(true);
+    setSeOut('');
+    const jdCtx = jdResult
+      ? `目标岗位：${jdResult.job_profile || '—'}\n硬性要求：${JSON.stringify(jdResult.hard_requirements || {})}\n筛选优先级：${JSON.stringify(jdResult.screening_priority || [])}\n关键词：${(jdResult.keyword_list || []).join('、')}`
+      : '未提供 JD（按通用应届生标准）';
+    const resumeContent = text || (result ? JSON.stringify(result) : '');
+    const messages = [
+      {
+        role: 'user',
+        content: `${jdCtx}\n\n请基于以下简历内容，生成一段针对性自我评价（总分总结构，3-5 个能力点，400-600 字）。\n\n【简历内容】\n${resumeContent}`,
+      },
+    ];
+    try {
+      for await (const msg of api.selfEval(messages, settings) as AsyncGenerator<SSEMessage>) {
+        if (msg.type === 'token') setSeOut((o) => o + msg.text);
+        else if (msg.type === 'error') message.error(msg.message);
+      }
+    } catch (e: any) {
+      message.error(e.message);
+    }
+    setSeLoading(false);
   };
 
   return (
@@ -178,6 +208,9 @@ export default function ResumeAnalysis({ settings, onGotoJD }: { settings: Setti
             <Button disabled={!result} icon={<EditOutlined />} onClick={() => setRwOpen(true)}>
               逐段改写
             </Button>
+            <Button disabled={!result} icon={<FileTextOutlined />} onClick={() => { setSeOpen(true); doSelfEval(); }}>
+              生成自我评价
+            </Button>
             <Button disabled={!result} icon={<ShareAltOutlined />} onClick={share}>
               生成分享链接
             </Button>
@@ -219,6 +252,31 @@ export default function ResumeAnalysis({ settings, onGotoJD }: { settings: Setti
             {rwLoading && <span className="cursor" />}
           </div>
         )}
+      </Drawer>
+
+      <Drawer
+        open={seOpen}
+        onClose={() => setSeOpen(false)}
+        title="自我评价生成"
+        width={520}
+        styles={{ body: { display: 'flex', flexDirection: 'column', gap: 12 } }}
+      >
+        <Typography.Text type="secondary">
+          基于简历 + 目标 JD 生成针对性自我评价（总分总结构，400-600 字）
+        </Typography.Text>
+        {seOut && (
+          <div className="markdown" style={{ background: '#fafafa', padding: 16, borderRadius: 8, whiteSpace: 'pre-wrap', lineHeight: 1.8 }}>
+            {seOut}
+            {seLoading && <span className="cursor" />}
+          </div>
+        )}
+        {!seOut && !seLoading && (
+          <Typography.Text type="secondary">点击按钮后自动生成...</Typography.Text>
+        )}
+        {seLoading && !seOut && <Typography.Text>生成中...</Typography.Text>}
+        <Button onClick={() => { setSeOut(''); doSelfEval(); }} loading={seLoading} disabled={!result}>
+          重新生成
+        </Button>
       </Drawer>
     </div>
   );

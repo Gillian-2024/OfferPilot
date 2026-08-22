@@ -101,6 +101,65 @@ export function JDResultView({ data }: { data: JDResult | null }) {
           }
         />
       )}
+
+      {/* Step 4: 岗位深解读 */}
+      {data.real_work_scenario && (
+        <Card size="small" title="🔍 真实工作场景">
+          <Typography.Paragraph style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
+            {data.real_work_scenario}
+          </Typography.Paragraph>
+        </Card>
+      )}
+
+      {data.industry_workflow && (
+        <Card size="small" title="🏭 行业上下游全景">
+          <Typography.Paragraph style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
+            {data.industry_workflow}
+          </Typography.Paragraph>
+        </Card>
+      )}
+
+      {data.career_path && (
+        <Card size="small" title="🛤️ 职业路径">
+          <Descriptions column={1} size="small">
+            <Descriptions.Item label="未来可转向">
+              <Space wrap>
+                {(data.career_path.exits || []).map((e) => (
+                  <Tag key={e} color="cyan">{e}</Tag>
+                ))}
+              </Space>
+            </Descriptions.Item>
+            <Descriptions.Item label="也适合投">
+              <Space wrap>
+                {(data.career_path.also_fit || []).map((a) => (
+                  <Tag key={a} color="geekblue">{a}</Tag>
+                ))}
+              </Space>
+            </Descriptions.Item>
+          </Descriptions>
+        </Card>
+      )}
+
+      {data.kpi_and_barrier && (
+        <Card size="small" title="📊 KPI & 壁垒能力">
+          <Descriptions column={1} size="small">
+            <Descriptions.Item label="核心 KPI">
+              <Space wrap>
+                {(data.kpi_and_barrier.kpis || []).map((k) => (
+                  <Tag key={k} color="orange">{k}</Tag>
+                ))}
+              </Space>
+            </Descriptions.Item>
+            <Descriptions.Item label="壁垒能力">
+              <Space wrap>
+                {(data.kpi_and_barrier.barriers || []).map((b) => (
+                  <Tag key={b} color="volcano">{b}</Tag>
+                ))}
+              </Space>
+            </Descriptions.Item>
+          </Descriptions>
+        </Card>
+      )}
     </div>
   );
 }

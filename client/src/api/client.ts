@@ -60,9 +60,10 @@ export const api = {
   analyzeJD: (text: string, s: Settings) => streamSSE('/api/analyze', { type: 'jd', text }, s),
   analyzeResume: (text: string, jdProfile: any | null, s: Settings) =>
     streamSSE('/api/analyze', { type: 'resume', text, jdProfile }, s),
-  chat: (messages: any[], context: any, s: Settings) =>
-    streamSSE('/api/chat', { messages, context }, s),
+  chat: (messages: any[], context: any, s: Settings, mode?: string) =>
+    streamSSE('/api/chat', { messages, context, mode }, s),
   rewrite: (messages: any[], s: Settings) => streamSSE('/api/rewrite', { messages }, s),
+  selfEval: (messages: any[], s: Settings) => streamSSE('/api/rewrite', { messages, mode: 'self-eval' }, s),
   createShare: async (payload: { type: string; title: string; content: string }) => {
     const res = await fetch('/api/share', {
       method: 'POST',

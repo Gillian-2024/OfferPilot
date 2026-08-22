@@ -32,6 +32,11 @@ export interface JDResult {
   interview_focus: { topic: string; probability: string; prep: string }[];
   campus_channel: { viable: boolean; loosen: string; blocker: string };
   red_flags: string[];
+  // Step 4: 岗位深解读
+  real_work_scenario?: string;
+  industry_workflow?: string;
+  career_path?: { exits: string[]; also_fit: string[] };
+  kpi_and_barrier?: { kpis: string[]; barriers: string[] };
 }
 
 // 简历拆解结果

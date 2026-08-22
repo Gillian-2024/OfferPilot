@@ -78,7 +78,7 @@ export default function JDAnalysis({ settings }: { settings: Settings }) {
 
       <Space style={{ marginBottom: 16 }} wrap>
         <Button type="primary" icon={<ThunderboltOutlined />} loading={loading} onClick={analyze}>
-          开始拆解（3 步链）
+          开始拆解（4 步链）
         </Button>
         <Button disabled={!result} icon={<ShareAltOutlined />} onClick={share}>
           生成分享链接
