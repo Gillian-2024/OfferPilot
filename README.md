@@ -1,4 +1,4 @@
-# OfferPilot 领航员 · AI 求职辅助
+# OfferPilot 领航员
 
 > **状态：WIP · 进行中**（2026-08-22）
 > 当前为端到端跑通的 MVP（Vite + Express + localStorage），正在迁移到 Next.js + Supabase + Vercel 上线全栈架构。
