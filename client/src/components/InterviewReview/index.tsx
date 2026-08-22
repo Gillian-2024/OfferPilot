@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import {
   Button, Space, Card, Typography, message, Alert, Tag, Collapse, Empty,
   Segmented, Tooltip, Dropdown, Badge,
@@ -16,6 +16,8 @@ import { Bubble, Sender, Welcome, Prompts, Actions, Suggestion, Conversations } 
 import type { ActionItem } from '@ant-design/x/es/actions/interface';
 import XMarkdown from '@ant-design/x-markdown';
 import { api } from '../../api/client';
+import { fetchHistory } from '../../api/auth';
+import { useAuth } from '../../contexts/AuthContext';
 import { Settings, SSEMessage } from '../../types';
 import { getJDProfile, getResumeSummary, getJDKeywords, getJDResult, getHistory, clearHistory } from '../../store/local';
 import { JDResultView } from '../shared/ResultViews';
@@ -35,7 +37,11 @@ export default function InterviewReview({ settings, onGotoJD }: { settings: Sett
   const [mode, setMode] = useState<Mode>('prep');
   const [inputValue, setInputValue] = useState('');
   const [showHistory, setShowHistory] = useState(false);
+  const [serverHistory, setServerHistory] = useState<Array<{ id: string; title: string; created_at?: string }>>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  const { isLoggedIn } = useAuth();
 
   const jdResult = getJDResult();
   const context = {
@@ -45,14 +51,47 @@ export default function InterviewReview({ settings, onGotoJD }: { settings: Sett
   };
   const hasContext = !!(context.jobProfile || context.resumeSummary);
 
-  // 历史记录 → Conversations items
+  // 从服务端或 localStorage 拉取历史记录
+  useEffect(() => {
+    let cancelled = false;
+    const loadHistory = async () => {
+      setHistoryLoading(true);
+      try {
+        if (isLoggedIn) {
+          const items = await fetchHistory('interview');
+          if (!cancelled) {
+            setServerHistory(items.map((h: any) => ({
+              id: h.id,
+              title: h.title || `对话 ${new Date(h.created_at).toLocaleDateString('zh-CN')}`,
+            })));
+          }
+        } else {
+          if (!cancelled) setServerHistory([]);
+        }
+      } catch {
+        // fallback silently
+        if (!cancelled) setServerHistory([]);
+      }
+      if (!cancelled) setHistoryLoading(false);
+    };
+    loadHistory();
+    return () => { cancelled = true; };
+  }, [isLoggedIn, messages.length]);
+
+  // 历史记录 → Conversations items（登录用服务端，未登录用 localStorage）
   const historyItems = useMemo(() => {
+    if (isLoggedIn && serverHistory.length > 0) {
+      return serverHistory.map((h) => ({
+        key: h.id,
+        label: h.title,
+      }));
+    }
     const list = getHistory('interview');
     return list.map((h) => ({
       key: h.id,
       label: h.title || `对话 ${new Date(h.ts).toLocaleDateString('zh-CN')}`,
     }));
-  }, [messages.length]); // refresh after new messages
+  }, [isLoggedIn, serverHistory, messages.length]);
 
   // 复制消息
   const copyMessage = useCallback((content: string) => {

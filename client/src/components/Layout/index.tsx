@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Tabs, Button, Badge, Tooltip, Tag, Dropdown, Avatar, Space } from 'antd';
 import { SettingOutlined, ThunderboltOutlined, UserOutlined, LogoutOutlined, HistoryOutlined } from '@ant-design/icons';
 import { getSettings, setSettings as saveSettings } from '../../store/local';
@@ -11,6 +12,7 @@ import ResumeAnalysis from '../ResumeAnalysis';
 import InterviewReview from '../InterviewReview';
 
 export default function Layout() {
+  const navigate = useNavigate();
   const [settings, setSettingsState] = useState<Settings>(getSettings());
   const [open, setOpen] = useState(false);
   const [activeKey, setActiveKey] = useState('jd');
@@ -78,7 +80,7 @@ export default function Layout() {
               items: [
                 { key: 'user-info', label: `${user?.nickname || user?.username}`, disabled: true, style: { fontWeight: 600 } },
                 { type: 'divider' },
-                { key: 'history', icon: <HistoryOutlined />, label: '历史记录（即将上线）', disabled: true },
+                { key: 'history', icon: <HistoryOutlined />, label: '历史记录', onClick: () => navigate('/history') },
                 { type: 'divider' },
                 { key: 'logout', icon: <LogoutOutlined />, label: '退出登录', onClick: logout },
               ],
