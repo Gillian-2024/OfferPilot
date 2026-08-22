@@ -3,15 +3,15 @@ import { streamText } from 'ai';
 import { getProvider } from '../providers/index.js';
 import { resolveConfig } from '../utils/config.js';
 import { initSSE, sendSSE, endSSE } from '../utils/sse.js';
-import { buildInterviewSystem } from '../prompts/interview.js';
-import { REWRITE_SYSTEM } from '../prompts/resume.js';
+import { buildInterviewSystem, buildPrepSystem } from '../prompts/interview.js';
+import { REWRITE_SYSTEM, SELF_EVAL_SYSTEM } from '../prompts/resume.js';
 
 const router = express.Router();
 
-// 面试复盘对话：streamText 逐字流式
-// body: { messages: [{role, content}], context?: {jobProfile, resumeSummary, jdKeywords} }
+// 面试对话（复盘 + 准备两种模式）：streamText 逐字流式
+// body: { messages, context?, mode?: 'review' | 'prep' }
 router.post('/chat', async (req, res) => {
-  const { messages = [], context = {} } = req.body;
+  const { messages = [], context = {}, mode = 'review' } = req.body;
   if (!messages.length) {
     return res.status(400).json({ error: '缺少 messages' });
   }
@@ -24,11 +24,12 @@ router.post('/chat', async (req, res) => {
     return res.status(400).json({ error: e.message });
   }
 
+  const system = mode === 'prep' ? buildPrepSystem(context) : buildInterviewSystem(context);
   initSSE(res);
   try {
     const result = await streamText({
       model,
-      system: buildInterviewSystem(context),
+      system,
       messages,
     });
     for await (const chunk of result.textStream) {
@@ -42,10 +43,11 @@ router.post('/chat', async (req, res) => {
   }
 });
 
-// 简历逐段改写：同样 streamText
-// body: { messages: [{role, content}] }  首条 user message 应含模块原文 + 目标
+// 简历改写 + 自我评价生成：同样 streamText
+// body: { messages: [{role, content}], mode?: 'rewrite' | 'self-eval' }
+const SYSTEM_MAP = { rewrite: REWRITE_SYSTEM, 'self-eval': SELF_EVAL_SYSTEM };
 router.post('/rewrite', async (req, res) => {
-  const { messages = [] } = req.body;
+  const { messages = [], mode = 'rewrite' } = req.body;
   if (!messages.length) {
     return res.status(400).json({ error: '缺少 messages' });
   }
@@ -58,9 +60,10 @@ router.post('/rewrite', async (req, res) => {
     return res.status(400).json({ error: e.message });
   }
 
+  const system = SYSTEM_MAP[mode] || REWRITE_SYSTEM;
   initSSE(res);
   try {
-    const result = await streamText({ model, system: REWRITE_SYSTEM, messages });
+    const result = await streamText({ model, system, messages });
     for await (const chunk of result.textStream) {
       sendSSE(res, { type: 'token', text: chunk });
     }

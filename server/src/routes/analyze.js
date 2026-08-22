@@ -56,7 +56,7 @@ ${schemaShape(step.schema)}`;
         model,
         system: step.system,
         prompt: fullPrompt,
-        maxTokens: 8192,
+        maxOutputTokens: 8192,
       });
       const object = extractAndParse(text, step.schema);
       prev = object;

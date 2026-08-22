@@ -3,7 +3,7 @@ import { createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 
 // 统一 Provider 工厂：根据 cfg 返回 ai sdk 的 model 实例
-// 切换 provider 零成本，所有 provider 共享 streamText/generateObject 接口
+// 切换 provider 零成本，所有 provider 共享 streamText/generateText 接口
 export function getProvider(cfg) {
   const { provider, apiKey, baseUrl, model } = cfg;
   if (!apiKey) {
