@@ -133,7 +133,7 @@
 
 ## 8. 部署方案
 
-- **Vercel**（免费 tier 够 demo）：关联 GitHub `Gillian-2024/campus-job-coach`，main 自动部署。
+- **Vercel**（免费 tier 够 demo）：关联 GitHub `Gillian-2024/OfferPilot`，main 自动部署。
 - 环境变量配置（双轨）：
   - **本机自用**（本地 `.env.local`，不入 git）：网关 key + `ANTHROPIC_BASE_URL=llm-gateway.example.com/anthropic` + `ANTHROPIC_MODEL=tencent/glm-5.2`
   - **上线 Vercel**（dashboard 配，不入 git）：`ZHIPU_API_KEY` + `ZHIPU_BASE_URL=https://open.bigmodel.cn/api/paas/v4` + `ZHIPU_MODEL=glm-5.2`

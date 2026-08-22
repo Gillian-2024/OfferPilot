@@ -32,7 +32,7 @@
 ## 目录结构
 
 ```
-campus-job-coach/
+OfferPilot/
 ├── package.json            # root：concurrently 同时跑前后端
 ├── .env.example
 ├── server/                 # 后端
@@ -62,7 +62,7 @@ campus-job-coach/
 ### 1. 装依赖
 
 ```bash
-cd campus-job-coach
+cd OfferPilot
 npm run install:all   # 装 server + client 依赖
 npm install          # 装 root 的 concurrently
 ```

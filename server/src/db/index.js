@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DB_DIR = path.resolve(__dirname, '../../data');
-const DB_PATH = path.join(DB_DIR, 'campus-job-coach.db');
+const DB_PATH = path.join(DB_DIR, 'offer-pilot.db');
 
 let _db;
 
