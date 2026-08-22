@@ -13,6 +13,13 @@ interface Props {
   accept?: string;
 }
 
+// Supported formats shown in the upload button label text.
+const FORMAT_LABELS: Record<string, string> = {
+  jd: 'PDF / Word / HTML / Markdown',
+  resume: 'PDF / Word / HTML / Markdown',
+  interview: 'PDF / Word / HTML / Markdown / 音频录音',
+};
+
 // 用原生 <label htmlFor> 绑定隐藏 file input，而非 antd Dragger。
 // antd Dragger 的点击走 inputRef.click()（程序式 JS 调用），受管浏览器策略/扩展
 // 拦截程序式 .click() 时选框不开 → “点不动”。<label> 点击由浏览器在用户手势层
@@ -43,9 +50,9 @@ export default function FileUpload({ settings, onText, label, accept }: Props) {
       <input
         id={inputId}
         type="file"
-        accept={accept || '.pdf,.docx,.html,.htm,.txt'}
+        accept={accept || '.pdf,.docx,.html,.htm,.txt,.md'}
         disabled={loading}
-        style={{ display: 'none' }}
+        className="fu-input"
         onChange={(e) => {
           const f = e.target.files?.[0];
           if (f) handleUpload(f);
@@ -54,7 +61,7 @@ export default function FileUpload({ settings, onText, label, accept }: Props) {
       />
       <label
         htmlFor={inputId}
-        className={`ant-upload ant-upload-drag${dragOver ? ' ant-upload-drag-hover' : ''}${loading ? ' ant-upload-disabled' : ''}`}
+        className={`fu-label ant-upload ant-upload-drag${dragOver ? ' ant-upload-drag-hover' : ''}${loading ? ' ant-upload-disabled' : ''}`}
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
         onDrop={(e) => {
@@ -63,15 +70,14 @@ export default function FileUpload({ settings, onText, label, accept }: Props) {
           const f = e.dataTransfer.files?.[0];
           if (f) handleUpload(f);
         }}
-        style={{ display: 'block', marginBottom: 8, cursor: loading ? 'not-allowed' : 'pointer' }}
       >
         <p className="ant-upload-drag-icon">
           <InboxOutlined />
         </p>
-        <p className="ant-upload-text">{loading ? '解析中…' : label || '点击或拖拽上传（PDF / Word / HTML / TXT）'}</p>
+        <p className="ant-upload-text">{loading ? '解析中…' : label || `点击或拖拽上传（${FORMAT_LABELS.interview}）`}</p>
       </label>
       {name && (
-        <Space style={{ marginBottom: 8 }}>
+        <Space className="mb-8">
           <Typography.Text type="secondary">已解析：{name}</Typography.Text>
           <Button
             type="link"

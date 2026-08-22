@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import {
   Button, Space, Card, Typography, message, Alert, Tag, Collapse, Empty,
-  Segmented, Tooltip, Dropdown, Badge,
+  Tooltip, Dropdown, Badge, Radio, Divider,
 } from 'antd';
 import {
   ShareAltOutlined, ClearOutlined, LinkOutlined, RightOutlined,
@@ -11,14 +11,16 @@ import {
   CopyOutlined, RedoOutlined, MoreOutlined, DeleteOutlined,
   HistoryOutlined, SendOutlined, ThunderboltOutlined,
   CheckCircleOutlined, FireOutlined, BookOutlined,
+  AudioMutedOutlined, InboxOutlined,
 } from '@ant-design/icons';
-import { Bubble, Sender, Welcome, Prompts, Actions, Suggestion, Conversations } from '@ant-design/x';
+import { Bubble, Sender, Prompts, Actions, Suggestion, Conversations } from '@ant-design/x';
 import type { ActionItem } from '@ant-design/x/es/actions/interface';
 import XMarkdown from '@ant-design/x-markdown';
 import { api } from '../../api/client';
 import { fetchHistory } from '../../api/auth';
 import { useAuth } from '../../contexts/AuthContext';
 import { Settings, SSEMessage } from '../../types';
+import FileUpload from '../shared/FileUpload';
 import { getJDProfile, getResumeSummary, getJDKeywords, getJDResult, getHistory, clearHistory } from '../../store/local';
 import { JDResultView } from '../shared/ResultViews';
 
@@ -28,18 +30,19 @@ interface Msg {
   streaming?: boolean;
 }
 
-type Mode = 'review' | 'prep';
-
-export default function InterviewReview({ settings, onGotoJD }: { settings: Settings; onGotoJD?: () => void }) {
+export default function InterviewReview({ settings, onGotoJD, viewMode = 'prep' }: { settings: Settings; onGotoJD?: () => void; viewMode?: 'prep' | 'review' }) {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [loading, setLoading] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
-  const [mode, setMode] = useState<Mode>('prep');
   const [inputValue, setInputValue] = useState('');
+  const [uploadText, setUploadText] = useState(''); // 文件上传提取的文本
   const [showHistory, setShowHistory] = useState(false);
   const [serverHistory, setServerHistory] = useState<Array<{ id: string; title: string; created_at?: string }>>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  // viewMode 为只读 prop（由 Layout Tab 控制），不暴露切换入口
+  const [round, setRound] = useState('');
+  const [duration, setDuration] = useState('');
 
   const { isLoggedIn } = useAuth();
 
@@ -117,7 +120,7 @@ export default function InterviewReview({ settings, onGotoJD }: { settings: Sett
       let acc = '';
       for await (const msg of api.chat(
         newMsgs.map((m) => ({ role: m.role, content: m.content })),
-        context, settings, mode,
+        { ...context, interviewRound: round, interviewDuration: duration }, settings, viewMode,
       ) as AsyncGenerator<SSEMessage>) {
         if (msg.type === 'token') {
           acc += msg.text;
@@ -138,7 +141,7 @@ export default function InterviewReview({ settings, onGotoJD }: { settings: Sett
       setMessages((s) => s.slice(0, -1));
     }
     setLoading(false);
-  }, [messages, context, settings, mode]);
+  }, [messages, context, settings, viewMode, round, duration]);
 
   // Bubble roles 配置 — 深度利用 @ant-design/x
   const roles = useMemo(
@@ -147,25 +150,16 @@ export default function InterviewReview({ settings, onGotoJD }: { settings: Sett
         placement: 'end' as const,
         variant: 'filled' as const,
         shape: 'round' as const,
-        avatar: {
-          icon: <UserOutlined />,
-          style: { background: 'linear-gradient(135deg, #1677ff 0%, #4096ff 100%)' },
-        },
-        styles: {
-          content: { borderRadius: 16, maxWidth: '85%' },
-        },
+        avatar: { icon: <UserOutlined /> },
       },
       assistant: {
         placement: 'start' as const,
         variant: 'shadow' as const,
-        avatar: {
-          icon: <BulbOutlined />,
-          style: { background: 'linear-gradient(135deg, #f0f5ff 0%, #e6f4ff 100%)' },
-        },
+        avatar: { icon: <BulbOutlined /> },
         header: (
           <Space size={4}>
-            <Typography.Text strong style={{ fontSize: 13 }}>校招教练</Typography.Text>
-            <Tag color="blue" style={{ fontSize: 10, lineHeight: '16px', padding: '0 4px', margin: 0 }}>AI策略PM</Tag>
+            <Typography.Text strong className="fs-13">OfferPilot 领航员</Typography.Text>
+            <Tag className="ir-role-tag">AI策略PM</Tag>
           </Space>
         ),
         messageRender: (content: string) => (
@@ -204,7 +198,7 @@ export default function InterviewReview({ settings, onGotoJD }: { settings: Sett
                       onItemClick: async () => {
                         const r = await api.createShare({
                           type: 'interview',
-                          title: '教练回答片段',
+                          title: '领航员回答片段',
                           content: `**Q**: ${messages[msgIdx - 1]?.content || '—'}\n\n**A**: ${content}`,
                         });
                         const url = `${location.origin}/share/${r.id}`;
@@ -236,24 +230,29 @@ export default function InterviewReview({ settings, onGotoJD }: { settings: Sett
     [messages]
   );
 
-  const switchMode = (newMode: string | number) => {
-    setMode(newMode as Mode);
-    setMessages([]);
-    setShareUrl('');
-  };
 
   const send = async (content: string) => {
-    if (!content.trim() || loading) return;
-    const userMsg: Msg = { role: 'user', content };
+    // 合并上传区文本：如果有未发送的上传内容，前置追加
+    const uploadPart = uploadText ? `${uploadText}\n\n` : '';
+    // 拼接面试筛选上下文
+    const filterHints = [
+      round ? `面试轮次：${round}` : '',
+      duration ? `面试时长：${duration}` : '',
+    ].filter(Boolean).join('；');
+    const filterPart = filterHints ? `\n\n${filterHints}` : '';
+    const finalContent = `${uploadPart}${content}${filterPart}`;
+    if (!finalContent.trim() || loading) return;
+    const userMsg: Msg = { role: 'user', content: finalContent };
     const newMsgs = [...messages, userMsg];
     setMessages([...newMsgs, { role: 'assistant', content: '', streaming: true }]);
     setInputValue('');
+    setUploadText(''); // 发送后清空上传区
     setLoading(true);
     try {
       let acc = '';
       for await (const msg of api.chat(
         newMsgs.map((m) => ({ role: m.role, content: m.content })),
-        context, settings, mode,
+        { ...context, interviewRound: round, interviewDuration: duration }, settings, viewMode,
       ) as AsyncGenerator<SSEMessage>) {
         if (msg.type === 'token') {
           acc += msg.text;
@@ -281,9 +280,9 @@ export default function InterviewReview({ settings, onGotoJD }: { settings: Sett
   const share = async () => {
     if (!messages.length) return;
     const md = messages
-      .map((m) => `**${m.role === 'user' ? '我' : '教练'}**：\n\n${m.content}`)
+      .map((m) => `**${m.role === 'user' ? '我' : '领航员'}**：\n\n${m.content}`)
       .join('\n\n---\n\n');
-    const title = mode === 'prep' ? '面试准备对话' : '面试复盘对话';
+    const title = viewMode === 'prep' ? '面试准备对话' : '面试复盘对话';
     const r = await api.createShare({ type: 'interview', title, content: md });
     setShareUrl(`${location.origin}/share/${r.id}`);
     message.success('分享链接已生成');
@@ -291,22 +290,22 @@ export default function InterviewReview({ settings, onGotoJD }: { settings: Sett
 
   // Prompts — 按模式切换，更丰富的图标和描述
   const reviewPrompts = [
-    { key: 'simulate', icon: <FireOutlined style={{ color: '#f5222d' }} />, label: '模拟追问', description: '面试官还会问什么' },
-    { key: 'satisfaction', icon: <SmileOutlined style={{ color: '#52c41a' }} />, label: '判断满意度', description: '面试官信号分析' },
-    { key: 'summary', icon: <BookOutlined style={{ color: '#1677ff' }} />, label: '总结表现', description: '亮点与不足' },
-    { key: 'failure', icon: <AimOutlined style={{ color: '#fa8c16' }} />, label: '失败归因', description: '可能的顾虑' },
-    { key: 'deep', icon: <RocketOutlined style={{ color: '#722ed1' }} />, label: '关键深挖', description: '最有深度的题' },
+    { key: 'simulate', icon: <FireOutlined className="icon-primary" />, label: '模拟追问', description: '面试官还会问什么' },
+    { key: 'satisfaction', icon: <SmileOutlined className="icon-primary" />, label: '判断满意度', description: '面试官信号分析' },
+    { key: 'summary', icon: <BookOutlined className="icon-primary" />, label: '总结表现', description: '亮点与不足' },
+    { key: 'failure', icon: <AimOutlined className="icon-primary" />, label: '失败归因', description: '可能的顾虑' },
+    { key: 'deep', icon: <RocketOutlined className="icon-primary" />, label: '关键深挖', description: '最有深度的题' },
   ];
 
   const prepPrompts = [
-    { key: 'predict', icon: <RocketOutlined style={{ color: '#1677ff' }} />, label: '预测面试题', description: '含参考答案框架' },
-    { key: 'company', icon: <AimOutlined style={{ color: '#f5222d' }} />, label: '公司定向', description: '定向准备' },
-    { key: 'concept', icon: <SwapOutlined style={{ color: '#722ed1' }} />, label: '概念辨析', description: '对比题练习' },
-    { key: 'scenario', icon: <QuestionCircleOutlined style={{ color: '#fa8c16' }} />, label: '场景分析', description: '产品sense' },
-    { key: 'ask-back', icon: <MessageOutlined style={{ color: '#52c41a' }} />, label: '反问技巧', description: '景别法' },
-    { key: 'intro', icon: <UserOutlined style={{ color: '#13c2c2' }} />, label: '自我介绍', description: '三段式框架' },
-    { key: 'hr', icon: <SafetyCertificateOutlined style={{ color: '#eb2f96' }} />, label: 'HR面准备', description: '六维度覆盖' },
-    { key: 'salary', icon: <DollarOutlined style={{ color: '#faad14' }} />, label: '薪资谈判', description: '策略话术' },
+    { key: 'predict', icon: <RocketOutlined className="icon-primary" />, label: '预测面试题', description: '含参考答案框架' },
+    { key: 'company', icon: <AimOutlined className="icon-primary" />, label: '公司定向', description: '定向准备' },
+    { key: 'concept', icon: <SwapOutlined className="icon-primary" />, label: '概念辨析', description: '对比题练习' },
+    { key: 'scenario', icon: <QuestionCircleOutlined className="icon-primary" />, label: '场景分析', description: '产品sense' },
+    { key: 'ask-back', icon: <MessageOutlined className="icon-primary" />, label: '反问技巧', description: '景别法' },
+    { key: 'intro', icon: <UserOutlined className="icon-primary" />, label: '自我介绍', description: '三段式框架' },
+    { key: 'hr', icon: <SafetyCertificateOutlined className="icon-primary" />, label: 'HR面准备', description: '六维度覆盖' },
+    { key: 'salary', icon: <DollarOutlined className="icon-primary" />, label: '薪资谈判', description: '策略话术' },
   ];
 
   const handlePromptClick = (info: { data: { key: string } }) => {
@@ -333,7 +332,7 @@ export default function InterviewReview({ settings, onGotoJD }: { settings: Sett
   // Suggestion items — 输入框上方的快捷建议
   const suggestionItems = useMemo(() => {
     if (messages.length > 0) return []; // 有对话时不显示
-    if (mode === 'review') {
+    if (viewMode === 'review') {
       return [
         { label: '📝 我刚面完字节一面，岗位是内容运营', value: '我刚面完字节一面，岗位是内容运营。面试官主要问了三个问题：1) 你觉得什么样的内容能吸引年轻用户 2) 如何衡量一个内容策略的效果 3) 如果让你负责一个新栏目，你会怎么冷启动。我的回答分别是…' },
         { label: '📝 昨天面了产品实习，感觉不错', value: '昨天面了产品实习，感觉不错。面试官问了我对用户增长的理解，我讲了 AARRR 模型但面试官追问了具体案例我没答好。帮我复盘一下。' },
@@ -345,7 +344,7 @@ export default function InterviewReview({ settings, onGotoJD }: { settings: Sett
       { label: '🚀 下周有个产品实习的终面', value: '下周有个产品实习的终面（总监面），请帮我准备。' },
       { label: '🚀 我想准备群面', value: '我想准备群面（无领导小组讨论），请教我技巧和常见题型。' },
     ];
-  }, [messages.length, mode]);
+  }, [messages.length, viewMode]);
 
   return (
     <div className="tab-content">
@@ -364,7 +363,7 @@ export default function InterviewReview({ settings, onGotoJD }: { settings: Sett
                       key: 'jd',
                       label: (
                         <Space>
-                          <ThunderboltOutlined style={{ color: '#1677ff' }} />
+                          <ThunderboltOutlined className="icon-primary" />
                           对照 JD
                           <Tag color="success" bordered={false}>已联动</Tag>
                         </Space>
@@ -382,12 +381,12 @@ export default function InterviewReview({ settings, onGotoJD }: { settings: Sett
               {context.resumeSummary ? (
                 <Card size="small" className="sidebar-card" title={
                   <Space>
-                    <UserOutlined style={{ color: '#722ed1' }} />
+                    <UserOutlined className="icon-purple" />
                     对照简历摘要
                     <Tag color="processing" bordered={false}>已联动</Tag>
                   </Space>
                 }>
-                  <Typography.Paragraph type="secondary" style={{ margin: 0, fontSize: 13, lineHeight: 1.7 }} ellipsis={{ rows: 6, expandable: true, symbol: '展开' }}>
+                  <Typography.Paragraph type="secondary" className="ir-sidebar-summary" ellipsis={{ rows: 6, expandable: true, symbol: '展开' }}>
                     {context.resumeSummary}
                   </Typography.Paragraph>
                 </Card>
@@ -414,24 +413,20 @@ export default function InterviewReview({ settings, onGotoJD }: { settings: Sett
 
         {/* 右：面试对话区 */}
         <main className="interview-chat">
-          {/* 模式切换 — 更精致 */}
-          <div className="mode-switch">
-            <Segmented
-              value={mode}
-              onChange={switchMode}
-              options={[
-                { label: <Space><RocketOutlined />面前准备</Space>, value: 'prep' },
-                { label: <Space><BookOutlined />面后复盘</Space>, value: 'review' },
-              ]}
-              block
-            />
-            <Tooltip title="历史对话">
-              <Button
-                type="text"
-                icon={<Badge count={historyItems.length} size="small" offset={[-2, 2]}><HistoryOutlined style={{ fontSize: 18 }} /></Badge>}
-                onClick={() => setShowHistory(!showHistory)}
-              />
-            </Tooltip>
+          {/* 顶部栏：历史按钮 + Welcome 提示（同行） */}
+          <div className="ir-top-bar">
+            <div className="ir-top-left">
+              <Tooltip title="历史对话">
+                <Button
+                  type="text"
+                  icon={<Badge count={historyItems.length} size="small" offset={[-2, 2]}><HistoryOutlined className="icon-18" /></Badge>}
+                  onClick={() => setShowHistory(!showHistory)}
+                />
+              </Tooltip>
+            </div>
+            <Typography.Text type="secondary" className="ir-welcome-hint">
+              {viewMode === 'prep' ? '描述你的面试需求，领航员帮你定制准备方案' : '描述你的面试情况和题目，逐题复盘分析'}
+            </Typography.Text>
           </div>
 
           {/* 历史面板（可收起） */}
@@ -446,75 +441,78 @@ export default function InterviewReview({ settings, onGotoJD }: { settings: Sett
                 onActiveChange={() => {
                   message.info('历史记录仅供查看，暂不支持恢复');
                 }}
-                styles={{ item: { borderRadius: 8 } }}
               />
             </Card>
           )}
+
+          {/* 文件上传区 — 先上传，再聊天 */}
+          <Card size="small" className="mb-16 ir-upload-card">
+            <Space direction="vertical" size={6} style={{ width: '100%' }}>
+              <Space>
+                <InboxOutlined className="icon-primary" />
+                <Typography.Text strong className="fs-13">上传文件 · 粘贴会议纪要</Typography.Text>
+              </Space>
+              <FileUpload
+                settings={settings}
+                onText={setUploadText}
+                label="点击或拖拽上传（PDF / Word / HTML / Markdown / 音频录音）"
+              />
+              <Typography.Text type="secondary" className="fs-12">
+                💡 支持直接粘贴{' '}
+                <Tag color="blue">飞书妙计</Tag>{' '}
+                {' '}<Tag color="cyan">腾讯会议</Tag>{' '}
+                {' '}<Tag color="orange">豆包会议纪要</Tag>{' '}
+                等导出文本；音频录音可上传 .mp3/.m4a/.wav 文件（需已转写为文本）
+              </Typography.Text>
+            </Space>
+          </Card>
+
+          {/* 面试筛选 */}
+          <div className="ir-filters">
+            <Space size={8} wrap>
+              <Space size={4}>
+                <Typography.Text type="secondary" className="fs-13">第几面</Typography.Text>
+                <Radio.Group value={round} onChange={(e) => setRound(e.target.value)} optionType="button" buttonStyle="default" size="small">
+                  {['第一面', '第二面', '第三面', '第四面', '第五面'].map((r) => (
+                    <Radio.Button key={r} value={r}>{r}</Radio.Button>
+                  ))}
+                </Radio.Group>
+              </Space>
+              <Divider type="vertical" style={{ height: 20, margin: '0 4px' }} />
+              <Space size={4}>
+                <Typography.Text type="secondary" className="fs-13">面试时长</Typography.Text>
+                <Radio.Group value={duration} onChange={(e) => setDuration(e.target.value)} optionType="button" buttonStyle="default" size="small">
+                  {['10-20分钟', '20-40分钟', '40分钟以上'].map((d) => (
+                    <Radio.Button key={d} value={d}>{d}</Radio.Button>
+                  ))}
+                </Radio.Group>
+              </Space>
+            </Space>
+          </div>
 
           {/* 对话区 */}
           <Card
             size="small"
             className="chat-card"
-            styles={{ body: { flex: 1, display: 'flex', flexDirection: 'column', padding: '12px 8px' } }}
           >
-            {messages.length === 0 ? (
-              <div className="welcome-container">
-                <Welcome
-                  icon={
-                    <div className="welcome-icon">
-                      {mode === 'prep' ? <RocketOutlined /> : <BookOutlined />}
-                    </div>
-                  }
-                  title={mode === 'prep' ? '面前准备' : '面后复盘'}
-                  description={
-                    mode === 'prep'
-                      ? '说明你的准备需求（目标公司 / 面试轮次 / 想练的题型），教练基于岗位画像 + 简历定制准备方案。'
-                      : '描述面试基本情况（公司 / 岗位 / 第几轮），教练判定面试类型后逐题复盘。'
-                  }
-                  variant="borderless"
-                  extra={
-                    <div className="welcome-tips">
-                      <Tag icon={<CheckCircleOutlined />} color="success">自动关联 JD + 简历</Tag>
-                      <Tag icon={<FireOutlined />} color="processing">实时流式回答</Tag>
-                      <Tag icon={<ShareAltOutlined />} color="default">一键分享对话</Tag>
-                    </div>
-                  }
-                />
-              </div>
-            ) : (
-              <Bubble.List
-                autoScroll
-                roles={roles}
-                items={bubbleItems}
-                style={{ flex: 1 }}
-              />
+            {messages.length > 0 && (
+              <Bubble.List autoScroll roles={roles} items={bubbleItems} />
             )}
           </Card>
 
-          {/* 快捷 Prompts — 更紧凑的卡片 */}
+          {/* 快捷 Prompts — 对话后的功能选项 */}
           <div className="prompts-wrapper">
             <Prompts
-              items={mode === 'review' ? reviewPrompts : prepPrompts}
+              items={viewMode === 'review' ? reviewPrompts : prepPrompts}
               onItemClick={handlePromptClick}
               wrap
-              styles={{
-                item: {
-                  flex: 'none',
-                  width: 'calc(33.33% - 8px)',
-                  minWidth: 130,
-                  backgroundImage: 'linear-gradient(137deg, #e5f4ff 0%, #efe7ff 100%)',
-                  border: 'none',
-                  borderRadius: 12,
-                  transition: 'all 0.2s',
-                },
-              }}
             />
           </div>
 
           {/* 工具按钮 */}
           <div className="chat-toolbar">
             <Space size={4}>
-              <Button size="small" type="text" icon={<ShareAltOutlined />} onClick={share} disabled={!messages.length}>
+              <Button size="small" className="btn-share" icon={<ShareAltOutlined />} onClick={share} disabled={!messages.length}>
                 分享
               </Button>
               <Button size="small" type="text" icon={<ClearOutlined />} onClick={() => { setMessages([]); setShareUrl(''); }} disabled={!messages.length}>
@@ -522,7 +520,7 @@ export default function InterviewReview({ settings, onGotoJD }: { settings: Sett
               </Button>
             </Space>
             {messages.length > 0 && (
-              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              <Typography.Text type="secondary" className="fs-12">
                 {messages.filter((m) => m.role === 'user').length} 轮对话
               </Typography.Text>
             )}
@@ -546,7 +544,7 @@ export default function InterviewReview({ settings, onGotoJD }: { settings: Sett
                 onCancel={() => setLoading(false)}
                 onKeyDown={onKeyDown}
                 placeholder={
-                  mode === 'prep'
+                  viewMode === 'prep'
                     ? '说说你的准备需求… 输入 / 查看建议'
                     : '描述面试题目 + 你的回答… 输入 / 查看建议'
                 }
@@ -560,7 +558,7 @@ export default function InterviewReview({ settings, onGotoJD }: { settings: Sett
               showIcon
               icon={<LinkOutlined />}
               closable
-              style={{ marginTop: 8, borderRadius: 8 }}
+              className="ir-share-alert"
               message={
                 <a href={shareUrl} target="_blank" rel="noreferrer">
                   {shareUrl}

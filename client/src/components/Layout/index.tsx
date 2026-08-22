@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Tabs, Button, Badge, Tooltip, Tag, Dropdown, Avatar, Space } from 'antd';
-import { SettingOutlined, ThunderboltOutlined, UserOutlined, LogoutOutlined, HistoryOutlined } from '@ant-design/icons';
+import { SettingOutlined, ThunderboltOutlined, FileTextOutlined, RocketOutlined, BookOutlined, UserOutlined, LogoutOutlined, HistoryOutlined } from '@ant-design/icons';
 import { getSettings, setSettings as saveSettings } from '../../store/local';
 import { Settings } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
@@ -13,7 +13,7 @@ import InterviewReview from '../InterviewReview';
 
 export default function Layout() {
   const navigate = useNavigate();
-  const [settings, setSettingsState] = useState<Settings>(getSettings());
+  const [settings, setSettingsState] = useState(getSettings);
   const [open, setOpen] = useState(false);
   const [activeKey, setActiveKey] = useState('jd');
   const [authOpen, setAuthOpen] = useState(false);
@@ -33,21 +33,41 @@ export default function Layout() {
       key: 'jd',
       label: (
         <span>
-          <ThunderboltOutlined style={{ marginRight: 4 }} />
-          JD 拆解
+          <ThunderboltOutlined className="mr-4" />
+          职位拆解
         </span>
       ),
       children: <JDAnalysis settings={settings} />,
     },
     {
       key: 'resume',
-      label: '简历拆解',
+      label: (
+        <span>
+          <FileTextOutlined className="mr-4" />
+          简历拆解
+        </span>
+      ),
       children: <ResumeAnalysis settings={settings} onGotoJD={() => setActiveKey('jd')} />,
     },
     {
-      key: 'interview',
-      label: '面试速通',
-      children: <InterviewReview settings={settings} onGotoJD={() => setActiveKey('jd')} />,
+      key: 'interview-prep',
+      label: (
+        <span>
+          <RocketOutlined className="mr-4" />
+          面试准备
+        </span>
+      ),
+      children: <InterviewReview settings={settings} onGotoJD={() => setActiveKey('jd')} viewMode="prep" />,
+    },
+    {
+      key: 'interview-review',
+      label: (
+        <span>
+          <BookOutlined className="mr-4" />
+          面试复盘
+        </span>
+      ),
+      children: <InterviewReview settings={settings} onGotoJD={() => setActiveKey('jd')} viewMode="review" />,
     },
   ];
 
@@ -55,10 +75,11 @@ export default function Layout() {
     <div className="app-shell">
       <header className="app-header">
         <div className="app-title">
-          校招教练
-          <span className="sub">AI 策略 PM 视角</span>
+          <img src="/logo.svg" alt="" className="app-logo" />
+          OfferPilot 领航员
+          <span className="sub">聚焦：AI 策略 PM</span>
           {hasModel && (
-            <Tag color="success" bordered={false} style={{ fontSize: 10, lineHeight: '16px', padding: '0 6px', margin: 0 }}>
+            <Tag color="success" bordered={false} className="tag-tight">
               已配置
             </Tag>
           )}
@@ -69,16 +90,15 @@ export default function Layout() {
               icon={<SettingOutlined />}
               onClick={() => setOpen(true)}
               type="text"
-              style={{ borderRadius: 8 }}
             >
-              模型设置
-              <Badge count={hasModel ? 0 : 1} size="small" offset={[4, -2]} color="#faad14" />
+              模型配置
+              <Badge count={hasModel ? 0 : 1} size="small" offset={[4, -2]} color="var(--color-gold)" />
             </Button>
           </Tooltip>
           {isLoggedIn ? (
             <Dropdown menu={{
               items: [
-                { key: 'user-info', label: `${user?.nickname || user?.username}`, disabled: true, style: { fontWeight: 600 } },
+                { key: 'user-info', label: `${user?.nickname || user?.username}`, disabled: true, className: 'menu-user-name' },
                 { type: 'divider' },
                 { key: 'history', icon: <HistoryOutlined />, label: '历史记录', onClick: () => navigate('/history') },
                 { type: 'divider' },
@@ -86,7 +106,7 @@ export default function Layout() {
               ],
             }} trigger={['click']}>
               <Avatar
-                style={{ cursor: 'pointer', background: 'var(--color-primary)', fontSize: 14 }}
+                className="header-avatar"
                 size={32}
               >
                 {(user?.nickname || user?.username || '?')[0].toUpperCase()}
@@ -99,7 +119,6 @@ export default function Layout() {
               size="small"
               icon={<UserOutlined />}
               onClick={() => setAuthOpen(true)}
-              style={{ borderRadius: 8 }}
             >
               登录
             </Button>
@@ -112,12 +131,6 @@ export default function Layout() {
         onChange={setActiveKey}
         size="large"
         className="app-tabs"
-        tabBarStyle={{
-          paddingLeft: 24,
-          background: 'var(--color-bg-elevated)',
-          marginBottom: 0,
-          borderBottom: '1px solid var(--color-border-light)',
-        }}
       />
       <SettingsPanel open={open} onClose={() => setOpen(false)} settings={settings} onSave={handleSave} />
       <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />

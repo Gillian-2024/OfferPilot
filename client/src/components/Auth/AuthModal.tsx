@@ -33,7 +33,7 @@ export default function AuthModal({ open, onClose }: Props) {
     setSubmitting(true);
     try {
       await register(values.username, values.password, values.nickname);
-      message.success('注册成功，欢迎使用校招教练！');
+      message.success('注册成功，欢迎使用 OfferPilot 领航员！');
       registerForm.resetFields();
       onClose();
     } catch (e: any) {
@@ -53,9 +53,9 @@ export default function AuthModal({ open, onClose }: Props) {
       destroyOnClose
       title={null}
     >
-      <div style={{ textAlign: 'center', marginBottom: 16 }}>
-        <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>校招教练</h2>
-        <p style={{ color: 'var(--color-text-secondary)', fontSize: 13, margin: '4px 0 0' }}>
+      <div className="am-head">
+        <h2 className="am-title">OfferPilot 领航员</h2>
+        <p className="am-sub">
           登录后历史记录云端同步，换设备不丢失
         </p>
       </div>
@@ -81,8 +81,8 @@ export default function AuthModal({ open, onClose }: Props) {
                 >
                   <Input.Password prefix={<LockOutlined />} placeholder="密码" autoComplete="current-password" />
                 </Form.Item>
-                <Form.Item style={{ marginBottom: 0 }}>
-                  <Button type="primary" htmlType="submit" loading={submitting} block style={{ borderRadius: 10, height: 44 }}>
+                <Form.Item className="am-submit-item">
+                  <Button type="primary" htmlType="submit" loading={submitting} block className="am-submit-btn">
                     登录
                   </Button>
                 </Form.Item>
@@ -133,8 +133,8 @@ export default function AuthModal({ open, onClose }: Props) {
                 >
                   <Input.Password prefix={<LockOutlined />} placeholder="确认密码" autoComplete="new-password" />
                 </Form.Item>
-                <Form.Item style={{ marginBottom: 0 }}>
-                  <Button type="primary" htmlType="submit" loading={submitting} block style={{ borderRadius: 10, height: 44 }}>
+                <Form.Item className="am-submit-item">
+                  <Button type="primary" htmlType="submit" loading={submitting} block className="am-submit-btn">
                     注册
                   </Button>
                 </Form.Item>

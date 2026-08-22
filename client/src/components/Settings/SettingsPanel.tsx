@@ -53,9 +53,9 @@ export default function SettingsPanel({
         type="info"
         showIcon
         message="双轨制：留空读服务端 .env；填写则覆盖（存 localStorage，随请求透传）"
-        style={{ marginBottom: 16 }}
+        className="mb-16"
       />
-      <Typography.Paragraph type="secondary" style={{ fontSize: 13 }}>
+      <Typography.Paragraph type="secondary" className="fs-13">
         选定 Provider 后会预填默认 Base URL / Model，可自行修改。API Key 仅存本机浏览器。
       </Typography.Paragraph>
       <Form form={form} layout="vertical" onFinish={onSave} initialValues={settings}>

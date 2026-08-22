@@ -21,7 +21,7 @@ export default function SharePage() {
 
   if (loading) {
     return (
-      <div style={{ padding: 80, textAlign: 'center' }}>
+      <div className="sp-loading">
         <Spin tip="加载分享…" />
       </div>
     );
@@ -39,20 +39,25 @@ export default function SharePage() {
       ) : data.type === 'resume' ? (
         <ResumeResultView data={obj} />
       ) : (
-        <pre style={{ whiteSpace: 'pre-wrap' }}>{data.content}</pre>
+        <pre className="sp-raw">{data.content}</pre>
       );
   } catch {
     content = <XMarkdown>{data.content}</XMarkdown>;
   }
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: 24 }}>
+    <div className="sp-body">
+      <div className="sp-brand">
+        <img src="/logo.svg" alt="" className="sp-brand-logo" />
+        <span className="sp-brand-name">OfferPilot 领航员</span>
+        <span className="sp-brand-sub">只读分享</span>
+      </div>
       <Typography.Title level={4}>{data.title}</Typography.Title>
-      <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
-        校招教练 · 只读分享 · {new Date(data.createdAt).toLocaleString('zh-CN')}
+      <Typography.Text type="secondary" className="sp-meta">
+        OfferPilot 领航员 · 只读分享 · {new Date(data.createdAt).toLocaleString('zh-CN')}
       </Typography.Text>
       <Card>{content}</Card>
-      <div style={{ textAlign: 'center', marginTop: 24 }}>
+      <div className="sp-footer">
         <Link to="/">自己也试试 →</Link>
       </div>
     </div>

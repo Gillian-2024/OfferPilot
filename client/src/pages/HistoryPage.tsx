@@ -9,10 +9,10 @@ import { fetchHistory, deleteHistoryItem } from '../api/auth';
 import { useAuth } from '../contexts/AuthContext';
 import { getHistory, clearHistory } from '../store/local';
 
-const TYPE_CONFIG: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
-  jd: { label: 'JD 拆解', icon: <ThunderboltOutlined />, color: 'blue' },
-  resume: { label: '简历拆解', icon: <FileProtectOutlined />, color: 'green' },
-  interview: { label: '面试复盘', icon: <MessageOutlined />, color: 'purple' },
+const TYPE_CONFIG: Record<string, { label: string; icon: React.ReactNode }> = {
+  jd: { label: 'JD 拆解', icon: <ThunderboltOutlined /> },
+  resume: { label: '简历拆解', icon: <FileProtectOutlined /> },
+  interview: { label: '面试复盘', icon: <MessageOutlined /> },
 };
 
 interface HistoryEntry {
@@ -139,10 +139,10 @@ export default function HistoryPage() {
           <Button type="text" icon={<ArrowLeftOutlined />} onClick={() => navigate('/')}>
             返回
           </Button>
-          <span className="app-title" style={{ fontSize: 18 }}>
-            <ClockCircleOutlined style={{ marginRight: 8 }} />
+          <span className="app-title fs-18">
+            <ClockCircleOutlined className="mr-8" />
             历史记录
-            <Tag bordered={false} style={{ fontSize: 10, marginLeft: 8 }}>
+            <Tag bordered={false} className="hp-source-tag">
               {isLoggedIn ? '云端同步' : '本地存储'}
             </Tag>
           </span>
@@ -158,7 +158,7 @@ export default function HistoryPage() {
         </Button>
       </header>
 
-      <div style={{ padding: '16px 24px', maxWidth: 800, margin: '0 auto' }}>
+      <div className="hp-body">
         <Segmented
           value={filter}
           onChange={(v) => setFilter(v as string)}
@@ -169,15 +169,15 @@ export default function HistoryPage() {
             { label: `简历 (${items.filter((h) => h.type === 'resume').length})`, value: 'resume' },
             { label: `面试 (${items.filter((h) => h.type === 'interview').length})`, value: 'interview' },
           ]}
-          style={{ marginBottom: 16 }}
+          className="mb-16"
         />
 
         {loading ? (
-          <div style={{ textAlign: 'center', padding: 48 }}>
+          <div className="hp-loading">
             <Spin size="large" />
           </div>
         ) : filtered.length === 0 ? (
-          <Empty description="暂无历史记录" style={{ marginTop: 64 }}>
+          <Empty description="还没有记录，去拆第一份 JD 吧" className="hp-empty">
             <Button type="primary" onClick={() => navigate('/')}>
               开始使用
             </Button>
@@ -186,20 +186,19 @@ export default function HistoryPage() {
           <List
             dataSource={filtered}
             renderItem={(item) => {
-              const cfg = TYPE_CONFIG[item.type] || { label: item.type, icon: null, color: 'default' };
+              const cfg = TYPE_CONFIG[item.type] || { label: item.type, icon: null };
               return (
                 <Card
                   size="small"
-                  style={{ marginBottom: 8, borderRadius: 12 }}
-                  styles={{ body: { padding: '12px 16px' } }}
+                  className="hp-item"
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div className="hp-item-row">
                     <Space>
-                      <Tag icon={cfg.icon} color={cfg.color} bordered={false}>{cfg.label}</Tag>
+                      <Tag icon={cfg.icon} bordered={false} className="hp-type-tag">{cfg.label}</Tag>
                       <Typography.Text strong>{item.title}</Typography.Text>
                     </Space>
                     <Space size={8}>
-                      <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                      <Typography.Text type="secondary" className="fs-12">
                         {formatDate(item.createdAt)}
                       </Typography.Text>
                       <Button

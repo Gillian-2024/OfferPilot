@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, Space, message, Card, Empty, Alert, Tag, Typography, Tooltip } from 'antd';
+import { Button, Space, message, Card, Empty, Alert, Tag, Tooltip } from 'antd';
 import {
   ThunderboltOutlined,
   ShareAltOutlined,
@@ -9,9 +9,6 @@ import {
   LoadingOutlined,
   ClockCircleOutlined,
   FileSearchOutlined,
-  KeyOutlined,
-  FlagOutlined,
-  AimOutlined,
 } from '@ant-design/icons';
 import { ThoughtChain } from '@ant-design/x';
 import FileUpload from '../shared/FileUpload';
@@ -19,13 +16,6 @@ import { JDResultView } from '../shared/ResultViews';
 import { api } from '../../api/client';
 import { Settings, JDResult } from '../../types';
 import { setJDResult, addHistorySynced } from '../../store/local';
-
-const STEP_META = [
-  { icon: <FileSearchOutlined />, color: '#1677ff' },
-  { icon: <KeyOutlined />, color: '#722ed1' },
-  { icon: <FlagOutlined />, color: '#fa8c16' },
-  { icon: <AimOutlined />, color: '#52c41a' },
-];
 
 export default function JDAnalysis({ settings }: { settings: Settings }) {
   const [text, setText] = useState('');
@@ -80,20 +70,21 @@ export default function JDAnalysis({ settings }: { settings: Settings }) {
   return (
     <div className="tab-content">
       {/* 上传区 */}
-      <Card size="small" title={
+      <Card size="small" className="mb-16" title={
         <Space>
-          <FileSearchOutlined style={{ color: 'var(--color-primary)' }} />
+          <FileSearchOutlined className="icon-primary" />
           上传 / 粘贴 JD
+          <Tag color="default" bordered={false} style={{ fontSize: '10px', opacity: 0.65 }}>JD即职位描述 + 职位要求</Tag>
         </Space>
-      } style={{ marginBottom: 16 }}>
-        <FileUpload settings={settings} onText={setText} label="上传 JD 文件（PDF / Word / HTML）或粘贴文本" />
+      }>
+        <FileUpload settings={settings} onText={setText} label="上传 JD 文件（PDF / Word / HTML / Markdown）或粘贴文本" />
       </Card>
 
       {/* ThoughtChain — 增强版 */}
       {steps.length > 0 && (
         <Card size="small" className="thought-chain-card" title={
           <Space>
-            <LoadingOutlined style={{ color: activeIdx >= 0 ? undefined : 'var(--color-accent-green)' }} />
+            {activeIdx >= 0 ? <LoadingOutlined className="step-icon--active" /> : <CheckCircleOutlined className="step-icon--done" />}
             {activeIdx >= 0 ? `分析中 (${activeIdx + 1}/${steps.length})` : '全部完成'}
           </Space>
         } extra={
@@ -107,40 +98,39 @@ export default function JDAnalysis({ settings }: { settings: Settings }) {
               title: s.label,
               status: s.done ? 'success' as const : i === activeIdx ? 'pending' as const : 'pending' as const,
               icon: s.done
-                ? <CheckCircleOutlined style={{ color: STEP_META[i]?.color }} />
+                ? <CheckCircleOutlined className="step-icon--done" />
                 : i === activeIdx
-                  ? <LoadingOutlined style={{ color: STEP_META[i]?.color }} />
-                  : <ClockCircleOutlined style={{ color: 'var(--color-text-tertiary)' }} />,
+                  ? <LoadingOutlined className="step-icon--active" />
+                  : <ClockCircleOutlined className="step-icon--wait" />,
               description: s.done
-                ? <Typography.Text type="success" style={{ fontSize: 12 }}>✓ 已完成</Typography.Text>
+                ? <Typography.Text type="success" className="fs-12">✓ 已完成</Typography.Text>
                 : i === activeIdx
-                  ? <Typography.Text style={{ fontSize: 12, color: STEP_META[i]?.color }}>处理中…</Typography.Text>
-                  : <Typography.Text type="secondary" style={{ fontSize: 12 }}>等待</Typography.Text>,
+                  ? <Typography.Text className="step-desc--active">处理中…</Typography.Text>
+                  : <Typography.Text type="secondary" className="fs-12">等待</Typography.Text>,
             }))}
           />
         </Card>
       )}
 
       {/* 操作按钮 */}
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
+      <div className="ra-actions">
         <Button
           type="primary"
           icon={<ThunderboltOutlined />}
           loading={loading}
           onClick={analyze}
           size="large"
-          style={{ borderRadius: 'var(--radius-md)' }}
         >
-          开始拆解（4 步链）
+          开始拆解
         </Button>
         <Tooltip title="生成只读分享链接，对方无需登录">
           <Button
+            className="btn-share"
             disabled={!result}
             icon={<ShareAltOutlined />}
             onClick={share}
-            style={{ borderRadius: 'var(--radius-md)' }}
           >
-            生成分享链接
+            一键分享
           </Button>
         </Tooltip>
       </div>
@@ -152,7 +142,7 @@ export default function JDAnalysis({ settings }: { settings: Settings }) {
           showIcon
           icon={<LinkOutlined />}
           closable
-          style={{ marginBottom: 16, borderRadius: 'var(--radius-md)' }}
+          className="ra-share-alert"
           message={
             <a href={shareUrl} target="_blank" rel="noreferrer">
               {shareUrl}
@@ -167,11 +157,11 @@ export default function JDAnalysis({ settings }: { settings: Settings }) {
         <Alert
           type="info"
           showIcon
-          style={{ marginBottom: 16, borderRadius: 'var(--radius-md)' }}
+          className="ra-share-alert"
           message={
             <span>
               已存入会话上下文，切换到 <Tag color="processing" bordered={false}>简历拆解</Tag> Tab 将自动联动岗位画像 + 关键词
-              <ArrowRightOutlined style={{ marginLeft: 4 }} />
+              <ArrowRightOutlined className="ml-4" />
             </span>
           }
         />
@@ -179,7 +169,7 @@ export default function JDAnalysis({ settings }: { settings: Settings }) {
 
       {/* 结果 */}
       <div className="step-detail-enter">
-        {result ? <JDResultView data={result} /> : !loading ? <Empty description="上传 JD 后点击开始拆解" /> : null}
+        {result ? <JDResultView data={result} /> : !loading ? <Empty description="把 JD 交给领航员，4 步拆出岗位画像与关键词" /> : null}
       </div>
     </div>
   );

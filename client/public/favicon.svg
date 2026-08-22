@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- 加粗金环(16px 不糊) -->
+  <circle cx="32" cy="32" r="29" stroke="#b8860b" stroke-width="5"/>
+  <!-- 藏蓝底(与金环贴合,实心徽章) -->
+  <circle cx="32" cy="32" r="26.5" fill="#14273f"/>
+  <!-- 学士帽 · 帽身 -->
+  <path d="M 23.5 29.5 L 40.5 29.5 L 40.5 41 Q 32 46.5 23.5 41 Z" fill="#fbf3dc"/>
+  <!-- 学士帽 · 帽板(放大,藏蓝描边分隔) -->
+  <path d="M 32 18.5 L 49 27 L 32 35.5 L 15 27 Z" fill="#fbf3dc" stroke="#14273f" stroke-width="1.5" stroke-linejoin="round"/>
+  <!-- 帽顶纽扣(藏蓝,小尺寸下提供对比) -->
+  <circle cx="32" cy="27" r="1.6" fill="#14273f"/>
+  <!-- 流苏:加粗垂线 + 穗头 -->
+  <path d="M 49 27 C 51 30 51.5 33 50.8 36.5" stroke="#fbf3dc" stroke-width="2.2" stroke-linecap="round"/>
+  <circle cx="50.8" cy="38.6" r="2.2" fill="#fbf3dc"/>
+</svg>

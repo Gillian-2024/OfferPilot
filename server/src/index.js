@@ -28,14 +28,21 @@ app.use('/api', shareRouter);
 // 生产：托管前端构建产物
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const clientDist = path.resolve(__dirname, '../../client/dist');
-app.use(express.static(clientDist));
+// index.html 不缓存（每次重新校验），保证前端重新构建后用户刷新即见新版；
+// /assets 下带 hash 的产物仍走浏览器默认长缓存
+app.use(express.static(clientDist, {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('index.html')) res.setHeader('Cache-Control', 'no-cache');
+  },
+}));
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api')) return next();
+  res.set('Cache-Control', 'no-cache');
   res.sendFile(path.join(clientDist, 'index.html'));
 });
 
 const PORT = process.env.PORT || 8787;
 app.listen(PORT, () => {
-  console.log(`\n  校招教练 server: http://localhost:${PORT}`);
+  console.log(`\n  OfferPilot 领航员 server: http://localhost:${PORT}`);
   console.log(`  provider 默认: ${process.env.DEFAULT_PROVIDER || 'openai'}\n`);
 });

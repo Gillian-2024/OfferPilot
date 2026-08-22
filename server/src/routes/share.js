@@ -7,7 +7,7 @@ const router = express.Router();
 router.post('/share', (req, res) => {
   const { type, title, content } = req.body;
   if (!content) return res.status(400).json({ error: '缺少 content' });
-  const id = saveShare({ type: type || 'generic', title: title || '校招教练分析报告', content });
+  const id = saveShare({ type: type || 'generic', title: title || 'OfferPilot 领航员分析报告', content });
   res.json({ id, url: `/share/${id}` });
 });
 
