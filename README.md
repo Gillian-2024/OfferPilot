@@ -1,6 +1,6 @@
 # OfferPilot 领航员
 
-> **状态：WIP · 进行中**（2026-08-22）
+> **状态：WIP · 进行中**（2026-08-23）
 > 当前为端到端跑通的 MVP（Vite + Express + localStorage），正在迁移到 Next.js + Supabase + Vercel 上线全栈架构。
 > - 产品定位与能力：见 [`docs/prd.md`](docs/prd.md)
 > - 迁移施工蓝图（P1-P7 路线图）：见 [`docs/tech-architecture.md`](docs/tech-architecture.md)
@@ -45,7 +45,7 @@ campus-job-coach/
 │       │   ├── jd.js       # JD 拆解 3 节点
 │       │   ├── resume.js   # 简历拆解 4 节点 + 改写
 │       │   └── interview.js# 面试复盘 system + 混合模式
-│       ├── routes/         # analyze/chat/upload/share
+│       ├── routes/         # analyze/chat/upload/share/model(配置探测)
 │       ├── store/          # 分享存储
 │       └── utils/          # config(双轨制) + sse
 └── client/                 # 前端
@@ -74,7 +74,7 @@ cp .env.example server/.env
 # 编辑 server/.env，至少填一个 provider 的 key
 ```
 
-支持三个 provider，任选其一（也可在前端「模型设置」面板覆盖）：
+支持三个 provider，任选其一（也可在前端「模型配置」面板覆盖）：
 - `openai`：`OPENAI_API_KEY`
 - `claude`：`ANTHROPIC_API_KEY`
 - `domestic`：`DOMESTIC_API_KEY`（智谱/通义/DeepSeek，OpenAI 兼容协议）
@@ -94,8 +94,17 @@ npm run dev
 ## 双轨制 Key
 
 - 默认读服务端 `.env`
-- 前端「模型设置」面板可覆盖（Provider / API Key / Base URL / Model），覆盖值存 localStorage，随请求 header 透传（`x-provider` / `x-api-key` 等）
+- 前端「模型配置」面板可覆盖（Provider / API Key / Base URL / Model），覆盖值存 localStorage，随请求 header 透传（`x-provider` / `x-api-key` 等）
 - 覆盖时不影响服务端 `.env`，纯本机覆盖
+
+## 模型状态三态（顶栏）
+
+顶栏状态标签实时反映**生效配置**（前端覆盖 > 服务端 `.env`）：
+- 🟢 模型已配置 —— 探测通过
+- 🔴 模型未配置 —— 完全没填 key
+- 🟠 模型配置出错了 —— 填了但用不了（Key 错 / 网关不通 / 配额不足）
+
+探测走 `POST /api/model/check`：1-token 最小调用 + 15s 超时；启动与保存设置后自动重探。标签可点击直达「模型配置」面板，hover 显示具体错误。
 
 ## JD ↔ 简历 对照（核心关系）
 
@@ -120,6 +129,10 @@ JD 拆解和简历拆解**不是彼此独立**——简历拆解以 JD 拆解结
 
 - 默认 A：逐题粘贴（题目 + 你的回答 → 领航员复盘）
 - 点「帮我想想还会问什么」切到 B：领航员基于岗位+简历生成 3-5 个可能追问题目（模拟面试官追问）
+
+## 面试 Tab 顶栏
+
+面试准备 / 面试复盘共用同一组件（`viewMode` 区分）与同一顶栏：Welcome 提示语左对齐，右侧同一行三个按钮（均 icon + 文字）：**一键分享 / 清空会话 / 历史会话**（历史会话带条数 badge，面板标题「历史会话」）。
 
 ## prompt 设计要点
 
