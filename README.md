@@ -1,5 +1,11 @@
 # 校招教练 · AI 求职辅助
 
+> **状态：WIP · 进行中**（2026-08-22）
+> 当前为端到端跑通的 MVP（Vite + Express + localStorage），正在迁移到 Next.js + Supabase + Vercel 上线全栈架构。
+> - 产品定位与能力：见 [`docs/prd.md`](docs/prd.md)
+> - 迁移施工蓝图（P1-P7 路线图）：见 [`docs/tech-architecture.md`](docs/tech-architecture.md)
+> 下方「技术栈 / 部署」描述的是**当前 MVP**，迁移完成后会更新。
+
 面向应届生校招的求职辅助应用，核心人设 **AI 策略 PM**（应届生 + 大厂 PM 双视角）：
 - 拆 JD = 拆需求文档
 - 评简历 = 评审产品方案
