@@ -54,7 +54,7 @@ OfferPilot/
         ├── api/            # API client + SSE 流消费
         ├── store/          # localStorage + 四 Tab 联动
         ├── types/          # JSON 契约类型
-        ├── components/     # Layout / Settings / shared / 三 Tab
+        ├── components/     # Layout / Settings / shared / 四 Tab
         └── pages/          # SharePage
 ```
 
