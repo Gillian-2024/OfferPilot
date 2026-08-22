@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Spin, Card, Typography, Result } from 'antd';
+import XMarkdown from '@ant-design/x-markdown';
 import { api } from '../api/client';
 import { JDResultView, ResumeResultView } from '../components/shared/ResultViews';
 
@@ -41,7 +42,7 @@ export default function SharePage() {
         <pre style={{ whiteSpace: 'pre-wrap' }}>{data.content}</pre>
       );
   } catch {
-    content = <div className="markdown" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.8 }} dangerouslySetInnerHTML={{ __html: simpleMd(data.content) }} />;
+    content = <XMarkdown>{data.content}</XMarkdown>;
   }
 
   return (
@@ -56,16 +57,4 @@ export default function SharePage() {
       </div>
     </div>
   );
-}
-
-// 极简 markdown 渲染（避免引入额外依赖）
-function simpleMd(md: string): string {
-  return md
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/`(.+?)`/g, '<code>$1</code>')
-    .replace(/^---$/gm, '<hr/>')
-    .replace(/\n/g, '<br/>');
 }

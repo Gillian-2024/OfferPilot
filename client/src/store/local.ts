@@ -72,3 +72,13 @@ export function addHistory(type: string, item: HistoryItem) {
 export function clearHistory(type: string) {
   localStorage.removeItem(KEYS.history(type));
 }
+
+// 登录态历史同步：addHistory 同时写服务端（fire-and-forget）
+import { getToken, saveHistoryItem } from '../api/auth';
+
+export function addHistorySynced(type: string, item: HistoryItem) {
+  addHistory(type, item);
+  if (getToken()) {
+    saveHistoryItem({ type, title: item.title, data: item.data, provider: item.provider, model: item.model }).catch(() => {});
+  }
+}

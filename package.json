@@ -10,6 +10,9 @@
     "install:all": "cd server && npm install && cd ../client && npm install",
     "build": "cd client && npm run build"
   },
+  "allowScripts": {
+    "better-sqlite3": true
+  },
   "devDependencies": {
     "concurrently": "^8.2.2"
   }

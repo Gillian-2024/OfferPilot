@@ -7,6 +7,9 @@ server/.env.local
 client/.env
 client/.env.local
 server/data/share-store
+server/data/*.db
+server/data/*.db-wal
+server/data/*.db-shm
 *.log
 .DS_Store
 

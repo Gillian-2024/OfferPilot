@@ -15,6 +15,14 @@ export interface SSEToken { type: 'token'; text: string }
 export interface SSEError { type: 'error'; message: string }
 export type SSEMessage = SSEStep | SSEStepDone | SSEResult | SSEToken | SSEError;
 
+// 用户
+export interface User {
+  id: string;
+  username: string;
+  nickname?: string;
+  createdAt: number;
+}
+
 // JD 拆解结果
 export interface JDResult {
   job_profile: string;

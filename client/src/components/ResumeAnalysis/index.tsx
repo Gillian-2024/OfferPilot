@@ -1,11 +1,35 @@
 import { useState } from 'react';
-import { Button, Space, Steps, message, Card, Empty, Alert, Drawer, Input, Typography, Tag, Collapse } from 'antd';
-import { ThunderboltOutlined, ShareAltOutlined, EditOutlined, FileTextOutlined, LinkOutlined, RightOutlined } from '@ant-design/icons';
+import { Button, Space, message, Card, Empty, Alert, Drawer, Input, Typography, Tag, Collapse, Tooltip } from 'antd';
+import {
+  ThunderboltOutlined,
+  ShareAltOutlined,
+  EditOutlined,
+  FileTextOutlined,
+  LinkOutlined,
+  RightOutlined,
+  CheckCircleOutlined,
+  LoadingOutlined,
+  ClockCircleOutlined,
+  FileProtectOutlined,
+  SearchOutlined,
+  AimOutlined,
+  StarOutlined,
+  RedoOutlined,
+} from '@ant-design/icons';
+import { ThoughtChain } from '@ant-design/x';
+import XMarkdown from '@ant-design/x-markdown';
 import FileUpload from '../shared/FileUpload';
 import { ResumeResultView, JDResultView } from '../shared/ResultViews';
 import { api } from '../../api/client';
 import { Settings, ResumeResult, SSEMessage } from '../../types';
-import { getJDKeywords, getJDResult, setResumeSummary, addHistory } from '../../store/local';
+import { getJDResult, setResumeSummary, addHistorySynced } from '../../store/local';
+
+const STEP_META = [
+  { icon: <FileProtectOutlined />, color: '#1677ff' },
+  { icon: <SearchOutlined />, color: '#722ed1' },
+  { icon: <AimOutlined />, color: '#fa8c16' },
+  { icon: <StarOutlined />, color: '#52c41a' },
+];
 
 export default function ResumeAnalysis({ settings, onGotoJD }: { settings: Settings; onGotoJD?: () => void }) {
   const [text, setText] = useState('');
@@ -25,10 +49,9 @@ export default function ResumeAnalysis({ settings, onGotoJD }: { settings: Setti
   const [seOut, setSeOut] = useState('');
   const [seLoading, setSeLoading] = useState(false);
 
-  // 对照基准：完整 JD 拆解结果（不是只关键词——简历拆解对照 JD 全画像做 gap 分析）
   const jdResult = getJDResult();
-  const jdKeywords = jdResult?.keyword_list || [];
   const hasBaseline = !!jdResult;
+  const activeIdx = steps.findIndex((st) => !st.done);
 
   const analyze = async () => {
     if (!text.trim()) return message.warning('请先上传或粘贴简历');
@@ -42,8 +65,8 @@ export default function ResumeAnalysis({ settings, onGotoJD }: { settings: Setti
           setSteps((s) => s.map((it, i) => (i === msg.index - 1 ? { ...it, done: true } : it)));
         else if (msg.type === 'result') {
           setResult(msg.data);
-          setResumeSummary(text.slice(0, 500)); // 联动：面试复盘读简历摘要
-          addHistory('resume', {
+          setResumeSummary(text.slice(0, 500));
+          addHistorySynced('resume', {
             id: Date.now().toString(),
             ts: Date.now(),
             title: `匹配度 ${msg.data.match_score}`,
@@ -123,7 +146,7 @@ export default function ResumeAnalysis({ settings, onGotoJD }: { settings: Setti
   return (
     <div className="tab-content">
       <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-        {/* 左:JD 对照(只读钉住,同屏对照) */}
+        {/* 左：JD 对照 */}
         <div
           style={{
             width: '40%',
@@ -132,20 +155,23 @@ export default function ResumeAnalysis({ settings, onGotoJD }: { settings: Setti
             top: 72,
             maxHeight: 'calc(100vh - 96px)',
             overflowY: 'auto',
+            scrollbarWidth: 'thin',
           }}
         >
           {hasBaseline ? (
             <Collapse
               defaultActiveKey={['jd']}
               ghost
+              className="sidebar-collapse"
               items={[
                 {
                   key: 'jd',
                   label: (
                     <Space>
+                      <ThunderboltOutlined style={{ color: 'var(--color-primary)' }} />
                       对照 JD（只读）
-                      <Tag color="green">已联动</Tag>
-                      <strong>{jdResult.job_profile}</strong>
+                      <Tag color="success" bordered={false}>已联动</Tag>
+                      <Typography.Text strong style={{ fontSize: 13 }}>{jdResult.job_profile}</Typography.Text>
                     </Space>
                   ),
                   extra: onGotoJD ? (
@@ -160,10 +186,11 @@ export default function ResumeAnalysis({ settings, onGotoJD }: { settings: Setti
           ) : (
             <Card
               size="small"
+              className="sidebar-card sidebar-empty"
               title={
                 <Space>
                   对照 JD（只读）
-                  <Tag color="orange">未拆解</Tag>
+                  <Tag color="warning" bordered={false}>未拆解</Tag>
                 </Space>
               }
               extra={
@@ -174,9 +201,9 @@ export default function ResumeAnalysis({ settings, onGotoJD }: { settings: Setti
                 ) : null
               }
             >
-              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="未拆解 JD">
+              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="未拆解 JD，无法做精准对照">
                 {onGotoJD && (
-                  <Button type="primary" size="small" onClick={onGotoJD}>
+                  <Button type="primary" size="small" onClick={onGotoJD} icon={<ThunderboltOutlined />}>
                     先去拆 JD
                   </Button>
                 )}
@@ -185,43 +212,100 @@ export default function ResumeAnalysis({ settings, onGotoJD }: { settings: Setti
           )}
         </div>
 
-        {/* 右:简历拆解工作流 */}
+        {/* 右：简历拆解工作流 */}
         <div style={{ flex: 1, minWidth: 320 }}>
-          <Card size="small" title="1. 上传 / 粘贴简历" style={{ marginBottom: 16 }}>
+          {/* 上传区 */}
+          <Card size="small" title={
+            <Space>
+              <FileProtectOutlined style={{ color: 'var(--color-primary)' }} />
+              上传 / 粘贴简历
+            </Space>
+          } style={{ marginBottom: 16 }}>
             <FileUpload settings={settings} onText={setText} label="上传简历文件（PDF / Word / HTML）或粘贴文本" />
           </Card>
 
+          {/* ThoughtChain — 增强版 */}
           {steps.length > 0 && (
-            <Card size="small" style={{ marginBottom: 16 }}>
-              <Steps
+            <Card size="small" className="thought-chain-card" title={
+              <Space>
+                {activeIdx >= 0 ? <LoadingOutlined style={{ color: STEP_META[activeIdx]?.color }} /> : <CheckCircleOutlined style={{ color: 'var(--color-accent-green)' }} />}
+                {activeIdx >= 0 ? `分析中 (${activeIdx + 1}/${steps.length})` : '全部完成'}
+              </Space>
+            } extra={
+              activeIdx < 0 && <Tag color="success" icon={<CheckCircleOutlined />} bordered={false}>完成</Tag>
+            }>
+              <ThoughtChain
                 size="small"
-                current={steps.filter((s) => s.done).length - 1}
-                items={steps.map((s) => ({ title: s.label, status: s.done ? ('finish' as const) : ('process' as const) }))}
+                collapsible
+                items={steps.map((s, i) => ({
+                  key: String(i),
+                  title: s.label,
+                  status: s.done ? 'success' as const : 'pending' as const,
+                  icon: s.done
+                    ? <CheckCircleOutlined style={{ color: STEP_META[i]?.color }} />
+                    : i === activeIdx
+                      ? <LoadingOutlined style={{ color: STEP_META[i]?.color }} />
+                      : <ClockCircleOutlined style={{ color: 'var(--color-text-tertiary)' }} />,
+                  description: s.done
+                    ? <Typography.Text type="success" style={{ fontSize: 12 }}>✓ 已完成</Typography.Text>
+                    : i === activeIdx
+                      ? <Typography.Text style={{ fontSize: 12, color: STEP_META[i]?.color }}>处理中…</Typography.Text>
+                      : <Typography.Text type="secondary" style={{ fontSize: 12 }}>等待</Typography.Text>,
+                }))}
               />
             </Card>
           )}
 
-          <Space style={{ marginBottom: 16 }} wrap>
-            <Button type="primary" icon={<ThunderboltOutlined />} loading={loading} onClick={analyze}>
+          {/* 操作按钮 */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+            <Button
+              type="primary"
+              icon={<ThunderboltOutlined />}
+              loading={loading}
+              onClick={analyze}
+              size="large"
+              style={{ borderRadius: 'var(--radius-md)' }}
+            >
               开始拆解（4 步链）
             </Button>
-            <Button disabled={!result} icon={<EditOutlined />} onClick={() => setRwOpen(true)}>
-              逐段改写
+            <Tooltip title="锚定 JD 逐段改写简历模块">
+              <Button
+                disabled={!result}
+                icon={<EditOutlined />}
+                onClick={() => setRwOpen(true)}
+                style={{ borderRadius: 'var(--radius-md)' }}
+              >
+                逐段改写
+              </Button>
+            </Tooltip>
+            <Tooltip title="总分总结构，400-600 字">
+              <Button
+                disabled={!result}
+                icon={<FileTextOutlined />}
+                onClick={() => { setSeOpen(true); doSelfEval(); }}
+                style={{ borderRadius: 'var(--radius-md)' }}
+              >
+                自我评价
+              </Button>
+            </Tooltip>
+            <Button
+              disabled={!result}
+              icon={<ShareAltOutlined />}
+              onClick={share}
+              style={{ borderRadius: 'var(--radius-md)' }}
+            >
+              分享
             </Button>
-            <Button disabled={!result} icon={<FileTextOutlined />} onClick={() => { setSeOpen(true); doSelfEval(); }}>
-              生成自我评价
-            </Button>
-            <Button disabled={!result} icon={<ShareAltOutlined />} onClick={share}>
-              生成分享链接
-            </Button>
-          </Space>
+          </div>
 
+          {/* 分享结果 */}
           {shareUrl && (
             <Alert
               type="success"
               showIcon
+              closable
               icon={<LinkOutlined />}
-              style={{ marginBottom: 16 }}
+              style={{ marginBottom: 16, borderRadius: 'var(--radius-md)' }}
               message={
                 <a href={shareUrl} target="_blank" rel="noreferrer">
                   {shareUrl}
@@ -230,54 +314,106 @@ export default function ResumeAnalysis({ settings, onGotoJD }: { settings: Setti
             />
           )}
 
-          {result ? <ResumeResultView data={result} /> : !loading ? <Empty description="上传简历后点击开始拆解" /> : null}
+          {/* 结果 */}
+          <div className="step-detail-enter">
+            {result ? <ResumeResultView data={result} /> : !loading ? <Empty description="上传简历后点击开始拆解" /> : null}
+          </div>
         </div>
       </div>
 
+      {/* 改写 Drawer */}
       <Drawer
         open={rwOpen}
         onClose={() => setRwOpen(false)}
-        title="逐段改写"
-        width={520}
-        styles={{ body: { display: 'flex', flexDirection: 'column', gap: 12 } }}
+        title={
+          <Space>
+            <EditOutlined style={{ color: 'var(--color-primary)' }} />
+            逐段改写
+            <Tag color="processing" bordered={false}>锚定 JD</Tag>
+          </Space>
+        }
+        width={560}
+        styles={{
+          body: { display: 'flex', flexDirection: 'column', gap: 12, padding: 20 },
+          header: { borderBottom: '1px solid var(--color-border-light)' },
+        }}
       >
-        <Typography.Text type="secondary">粘贴要改写的简历模块（一段经历 / 项目描述等）</Typography.Text>
-        <Input.TextArea value={rwText} onChange={(e) => setRwText(e.target.value)} rows={6} placeholder="如：在XX公司实习期间，负责XX，做了XX…" />
-        <Button type="primary" loading={rwLoading} onClick={doRewrite}>
+        <Typography.Text type="secondary" style={{ fontSize: 13 }}>
+          粘贴要改写的简历模块（一段经历 / 项目描述等），教练锚定目标 JD 逐段给出改写建议。
+        </Typography.Text>
+        <Input.TextArea
+          value={rwText}
+          onChange={(e) => setRwText(e.target.value)}
+          rows={6}
+          placeholder="如：在XX公司实习期间，负责XX，做了XX…"
+          style={{ borderRadius: 'var(--radius-md)' }}
+        />
+        <Button
+          type="primary"
+          loading={rwLoading}
+          onClick={doRewrite}
+          icon={<ThunderboltOutlined />}
+          style={{ borderRadius: 'var(--radius-md)', alignSelf: 'flex-start' }}
+        >
           生成改写建议
         </Button>
         {rwOut && (
-          <div className="markdown" style={{ background: '#fafafa', padding: 16, borderRadius: 8, whiteSpace: 'pre-wrap', lineHeight: 1.8 }}>
-            {rwOut}
+          <Card size="small" style={{ borderRadius: 'var(--radius-md)', background: 'var(--color-bg-subtle)', border: '1px solid var(--color-border-light)' }}>
+            <div className="chat-markdown">
+              <XMarkdown>{rwOut}</XMarkdown>
+            </div>
             {rwLoading && <span className="cursor" />}
-          </div>
+          </Card>
         )}
       </Drawer>
 
+      {/* 自我评价 Drawer */}
       <Drawer
         open={seOpen}
         onClose={() => setSeOpen(false)}
-        title="自我评价生成"
-        width={520}
-        styles={{ body: { display: 'flex', flexDirection: 'column', gap: 12 } }}
+        title={
+          <Space>
+            <FileTextOutlined style={{ color: 'var(--color-accent-purple)' }} />
+            自我评价生成
+            <Tag color="processing" bordered={false}>总分总结构</Tag>
+          </Space>
+        }
+        width={560}
+        styles={{
+          body: { display: 'flex', flexDirection: 'column', gap: 12, padding: 20 },
+          header: { borderBottom: '1px solid var(--color-border-light)' },
+        }}
       >
-        <Typography.Text type="secondary">
-          基于简历 + 目标 JD 生成针对性自我评价（总分总结构，400-600 字）
+        <Typography.Text type="secondary" style={{ fontSize: 13 }}>
+          基于简历 + 目标 JD 生成针对性自我评价（400-600 字，3-5 个能力点）
         </Typography.Text>
         {seOut && (
-          <div className="markdown" style={{ background: '#fafafa', padding: 16, borderRadius: 8, whiteSpace: 'pre-wrap', lineHeight: 1.8 }}>
-            {seOut}
+          <Card size="small" style={{ borderRadius: 'var(--radius-md)', background: 'var(--color-bg-subtle)', border: '1px solid var(--color-border-light)' }}>
+            <div className="chat-markdown">
+              <XMarkdown>{seOut}</XMarkdown>
+            </div>
             {seLoading && <span className="cursor" />}
-          </div>
+          </Card>
         )}
         {!seOut && !seLoading && (
-          <Typography.Text type="secondary">点击按钮后自动生成...</Typography.Text>
+          <Typography.Text type="secondary" style={{ padding: '24px 0', textAlign: 'center', display: 'block' }}>
+            点击按钮后自动生成…
+          </Typography.Text>
         )}
-        {seLoading && !seOut && <Typography.Text>生成中...</Typography.Text>}
-        <Button onClick={() => { setSeOut(''); doSelfEval(); }} loading={seLoading} disabled={!result}>
+        {seLoading && !seOut && (
+          <Typography.Text type="secondary">生成中…</Typography.Text>
+        )}
+        <Button
+          onClick={() => { setSeOut(''); doSelfEval(); }}
+          loading={seLoading}
+          disabled={!result}
+          icon={<RedoOutlined />}
+          style={{ borderRadius: 'var(--radius-md)', alignSelf: 'flex-start' }}
+        >
           重新生成
         </Button>
       </Drawer>
     </div>
   );
 }
+

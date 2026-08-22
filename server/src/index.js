@@ -6,12 +6,20 @@ import analyzeRouter from './routes/analyze.js';
 import chatRouter from './routes/chat.js';
 import uploadRouter from './routes/upload.js';
 import shareRouter from './routes/share.js';
+import authRouter from './routes/auth.js';
+import historyRouter from './routes/history.js';
+import { getDb } from './db/index.js';
 
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
+// 初始化数据库
+getDb();
+
 // API 路由
+app.use('/api/auth', authRouter);
+app.use('/api/history', historyRouter);
 app.use('/api', analyzeRouter);
 app.use('/api', chatRouter);
 app.use('/api', uploadRouter);
