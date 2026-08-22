@@ -11,12 +11,13 @@
 - 评简历 = 评审产品方案
 - 复盘面试 = 复盘产品答辩
 
-## 三大能力
+## 四大能力
 
 | 能力 | 形态 | prompt 链 |
 |---|---|---|
 | JD 拆解 | 一次性结构化输出 | 3 节点（岗位识别 → 需求拆解 → 考点预测+应届校准） |
 | 简历拆解 | 一次性结构化 + 逐段改写对话 | 4 节点（结构化 → 关键词匹配 → 逐模块诊断+JD对照gap → 汇总） |
+| 面试准备 | 对话式面试前准备 | streamText + 8 个快捷能力（预测面试题 / 公司定向 / 概念辨析 / 场景分析 / 反问技巧 / 自我介绍 / HR面准备 / 薪资谈判） |
 | 面试复盘 | 对话式逐题复盘 | streamText + 混合模式（逐题粘贴 / 模拟追问） |
 
 ## 技术栈
@@ -51,7 +52,7 @@ OfferPilot/
 └── client/                 # 前端
     └── src/
         ├── api/            # API client + SSE 流消费
-        ├── store/          # localStorage + 三 Tab 联动
+        ├── store/          # localStorage + 四 Tab 联动
         ├── types/          # JSON 契约类型
         ├── components/     # Layout / Settings / shared / 三 Tab
         └── pages/          # SharePage
