@@ -1,4 +1,4 @@
-import { Settings, Provider } from '../types';
+import { Settings } from '../types';
 
 const KEYS = {
   settings: 'cjc:settings',
@@ -7,7 +7,8 @@ const KEYS = {
   history: (t: string) => `cjc:history:${t}`,
 };
 
-export const defaultSettings: Settings = { provider: 'openai' as Provider };
+// 留空 = 不发 header = 服务端读 .env 默认（本机即 自建网关 网关 glm-5.2）
+export const defaultSettings: Settings = {};
 
 export function getSettings(): Settings {
   try {

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, Space, Steps, message, Card, Empty, Alert, Drawer, Input, Typography, Tag } from 'antd';
+import { Button, Space, Steps, message, Card, Empty, Alert, Drawer, Input, Typography, Tag, Collapse } from 'antd';
 import { ThunderboltOutlined, ShareAltOutlined, EditOutlined, LinkOutlined, RightOutlined } from '@ant-design/icons';
 import FileUpload from '../shared/FileUpload';
 import { ResumeResultView, JDResultView } from '../shared/ResultViews';
@@ -104,25 +104,46 @@ export default function ResumeAnalysis({ settings, onGotoJD }: { settings: Setti
             overflowY: 'auto',
           }}
         >
-          <Card
-            size="small"
-            title={
-              <Space>
-                对照 JD（只读）
-                {hasBaseline ? <Tag color="green">已联动</Tag> : <Tag color="orange">未拆解</Tag>}
-              </Space>
-            }
-            extra={
-              onGotoJD ? (
-                <Button type="link" size="small" onClick={onGotoJD}>
-                  去拆解 <RightOutlined />
-                </Button>
-              ) : null
-            }
-          >
-            {hasBaseline ? (
-              <JDResultView data={jdResult} />
-            ) : (
+          {hasBaseline ? (
+            <Collapse
+              defaultActiveKey={['jd']}
+              ghost
+              items={[
+                {
+                  key: 'jd',
+                  label: (
+                    <Space>
+                      对照 JD（只读）
+                      <Tag color="green">已联动</Tag>
+                      <strong>{jdResult.job_profile}</strong>
+                    </Space>
+                  ),
+                  extra: onGotoJD ? (
+                    <Button type="link" size="small" onClick={(e) => { e.stopPropagation(); onGotoJD(); }}>
+                      去拆解 <RightOutlined />
+                    </Button>
+                  ) : null,
+                  children: <JDResultView data={jdResult} />,
+                },
+              ]}
+            />
+          ) : (
+            <Card
+              size="small"
+              title={
+                <Space>
+                  对照 JD（只读）
+                  <Tag color="orange">未拆解</Tag>
+                </Space>
+              }
+              extra={
+                onGotoJD ? (
+                  <Button type="link" size="small" onClick={onGotoJD}>
+                    去拆解 <RightOutlined />
+                  </Button>
+                ) : null
+              }
+            >
               <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="未拆解 JD">
                 {onGotoJD && (
                   <Button type="primary" size="small" onClick={onGotoJD}>
@@ -130,8 +151,8 @@ export default function ResumeAnalysis({ settings, onGotoJD }: { settings: Setti
                   </Button>
                 )}
               </Empty>
-            )}
-          </Card>
+            </Card>
+          )}
         </div>
 
         {/* 右:简历拆解工作流 */}

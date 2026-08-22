@@ -22,7 +22,7 @@ export default function Layout() {
   const items = [
     { key: 'jd', label: 'JD 拆解', children: <JDAnalysis settings={settings} /> },
     { key: 'resume', label: '简历拆解', children: <ResumeAnalysis settings={settings} onGotoJD={() => setActiveKey('jd')} /> },
-    { key: 'interview', label: '面试复盘', children: <InterviewReview settings={settings} /> },
+    { key: 'interview', label: '面试复盘', children: <InterviewReview settings={settings} onGotoJD={() => setActiveKey('jd')} /> },
   ];
 
   return (

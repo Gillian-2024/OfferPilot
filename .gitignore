@@ -9,3 +9,8 @@ client/.env.local
 server/data/share-store
 *.log
 .DS_Store
+
+# tsc 编译产物
+*.tsbuildinfo
+client/vite.config.js
+client/vite.config.d.ts

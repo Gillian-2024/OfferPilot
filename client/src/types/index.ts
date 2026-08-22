@@ -1,7 +1,7 @@
-export type Provider = 'openai' | 'claude' | 'domestic';
+export type Provider = 'openai' | 'claude' | 'domestic' | 'gateway';
 
 export interface Settings {
-  provider: Provider;
+  provider?: Provider;
   apiKey?: string;
   baseUrl?: string;
   model?: string;

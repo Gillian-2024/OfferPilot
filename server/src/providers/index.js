@@ -16,8 +16,23 @@ export function getProvider(cfg) {
   switch (provider) {
     case 'openai':
       return createOpenAI({ apiKey, baseURL: baseUrl })(model);
-    case 'claude':
-      return createAnthropic({ apiKey, baseURL: baseUrl })(model);
+    case 'gateway':
+    case 'claude': {
+      // 内网 Anthropic 兼容网关（llm-gateway.example.com）的 messages 端点要带 /v1（/anthropic/v1/messages），
+      // 但 @ai-sdk/anthropic 拼 {baseURL}/messages 时会归一化掉 baseURL 的 /v1 → 命中 /anthropic/messages → 网关 404。
+      // fetch wrapper 在请求层把 /anthropic/messages 补成 /anthropic/v1/messages；仅对内网网关生效，不碰官方/其他端点。
+      const isCustomGateway = (baseUrl || '').includes('example.com');
+      const fetchWrapper = isCustomGateway
+        ? (url, init) => {
+            let u = url;
+            if (typeof u === 'string' && u.includes('/anthropic/messages') && !u.includes('/anthropic/v1/messages')) {
+              u = u.replace('/anthropic/messages', '/anthropic/v1/messages');
+            }
+            return globalThis.fetch(u, init);
+          }
+        : undefined;
+      return createAnthropic({ apiKey, baseURL: baseUrl, fetch: fetchWrapper })(model);
+    }
     case 'domestic':
       // 国内模型走 OpenAI 兼容协议（智谱 GLM / 通义 qwen / DeepSeek 等）
       return createOpenAICompatible({

@@ -18,6 +18,11 @@ const PROVIDERS: { value: Provider; label: string; hint: { baseUrl: string; mode
     label: '国内模型（智谱/通义/DeepSeek，OpenAI 兼容协议）',
     hint: { baseUrl: 'https://open.bigmodel.cn/api/paas/v4', model: 'glm-4-flash' },
   },
+  {
+    value: 'gateway',
+    label: '自建 LLM 网关（glm-5.2）',
+    hint: { baseUrl: 'https://llm-gateway.example.com/anthropic', model: 'tencent/glm-5.2' },
+  },
 ];
 
 export default function SettingsPanel({
