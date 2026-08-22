@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import {
   Button, Space, Card, Typography, message, Alert, Tag, Collapse, Empty,
-  Tooltip, Dropdown, Badge, Radio, Divider,
+  Badge, Radio, Divider,
 } from 'antd';
 import {
   ShareAltOutlined, ClearOutlined, LinkOutlined, RightOutlined,
@@ -413,25 +413,32 @@ export default function InterviewReview({ settings, onGotoJD, viewMode = 'prep' 
 
         {/* 右：面试对话区 */}
         <main className="interview-chat">
-          {/* 顶部栏：历史按钮 + Welcome 提示（同行） */}
+          {/* 顶部栏：Welcome 左对齐 + 功能按钮右对齐（同一行） */}
           <div className="ir-top-bar">
-            <div className="ir-top-left">
-              <Tooltip title="历史对话">
-                <Button
-                  type="text"
-                  icon={<Badge count={historyItems.length} size="small" offset={[-2, 2]}><HistoryOutlined className="icon-18" /></Badge>}
-                  onClick={() => setShowHistory(!showHistory)}
-                />
-              </Tooltip>
-            </div>
             <Typography.Text type="secondary" className="ir-welcome-hint">
               {viewMode === 'prep' ? '描述你的面试需求，领航员帮你定制准备方案' : '描述你的面试情况和题目，逐题复盘分析'}
             </Typography.Text>
+            <Space size={4} className="ir-top-actions">
+              <Button size="small" className="btn-share" icon={<ShareAltOutlined />} onClick={share} disabled={!messages.length}>
+                一键分享
+              </Button>
+              <Button size="small" type="text" icon={<ClearOutlined />} onClick={() => { setMessages([]); setShareUrl(''); }} disabled={!messages.length}>
+                清空会话
+              </Button>
+              <Button
+                size="small"
+                type="text"
+                icon={<Badge count={historyItems.length} size="small" offset={[-2, 2]}><HistoryOutlined className="icon-18" /></Badge>}
+                onClick={() => setShowHistory(!showHistory)}
+              >
+                历史会话
+              </Button>
+            </Space>
           </div>
 
           {/* 历史面板（可收起） */}
           {showHistory && historyItems.length > 0 && (
-            <Card size="small" className="history-panel" title="历史对话" extra={
+            <Card size="small" className="history-panel" title="历史会话" extra={
               <Button type="text" size="small" danger onClick={() => { clearHistory('interview'); setShowHistory(false); message.success('已清空'); }}>
                 <DeleteOutlined /> 清空
               </Button>
@@ -472,7 +479,7 @@ export default function InterviewReview({ settings, onGotoJD, viewMode = 'prep' 
             <Space size={8} wrap>
               <Space size={4}>
                 <Typography.Text type="secondary" className="fs-13">第几面</Typography.Text>
-                <Radio.Group value={round} onChange={(e) => setRound(e.target.value)} optionType="button" buttonStyle="default" size="small">
+                <Radio.Group value={round} onChange={(e) => setRound(e.target.value)} optionType="button" buttonStyle="outline" size="small">
                   {['第一面', '第二面', '第三面', '第四面', '第五面'].map((r) => (
                     <Radio.Button key={r} value={r}>{r}</Radio.Button>
                   ))}
@@ -481,7 +488,7 @@ export default function InterviewReview({ settings, onGotoJD, viewMode = 'prep' 
               <Divider type="vertical" style={{ height: 20, margin: '0 4px' }} />
               <Space size={4}>
                 <Typography.Text type="secondary" className="fs-13">面试时长</Typography.Text>
-                <Radio.Group value={duration} onChange={(e) => setDuration(e.target.value)} optionType="button" buttonStyle="default" size="small">
+                <Radio.Group value={duration} onChange={(e) => setDuration(e.target.value)} optionType="button" buttonStyle="outline" size="small">
                   {['10-20分钟', '20-40分钟', '40分钟以上'].map((d) => (
                     <Radio.Button key={d} value={d}>{d}</Radio.Button>
                   ))}
@@ -509,22 +516,14 @@ export default function InterviewReview({ settings, onGotoJD, viewMode = 'prep' 
             />
           </div>
 
-          {/* 工具按钮 */}
-          <div className="chat-toolbar">
-            <Space size={4}>
-              <Button size="small" className="btn-share" icon={<ShareAltOutlined />} onClick={share} disabled={!messages.length}>
-                分享
-              </Button>
-              <Button size="small" type="text" icon={<ClearOutlined />} onClick={() => { setMessages([]); setShareUrl(''); }} disabled={!messages.length}>
-                清空
-              </Button>
-            </Space>
-            {messages.length > 0 && (
+          {/* 对话轮次计数 */}
+          {messages.length > 0 && (
+            <div className="chat-toolbar">
               <Typography.Text type="secondary" className="fs-12">
                 {messages.filter((m) => m.role === 'user').length} 轮对话
               </Typography.Text>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Suggestion + Sender — 输入框带建议 */}
           <Suggestion

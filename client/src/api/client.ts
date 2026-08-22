@@ -55,8 +55,21 @@ export async function* streamSSE(url: string, body: any, settings: Settings): As
   }
 }
 
+export type ModelCheckResult = {
+  status: 'missing' | 'ok' | 'error';
+  error?: string;
+  provider?: string;
+  model?: string;
+};
+
 export const api = {
   uploadFile,
+  // 模型配置探测：1-token 最小调用，验证 Key / 网关 / 配额是否可用
+  checkModel: async (s: Settings) => {
+    const res = await fetch('/api/model/check', { method: 'POST', headers: authHeaders(s) });
+    if (!res.ok) throw new Error(`模型检测请求失败 ${res.status}`);
+    return res.json() as Promise<ModelCheckResult>;
+  },
   analyzeJD: (text: string, s: Settings) => streamSSE('/api/analyze', { type: 'jd', text }, s),
   analyzeResume: (text: string, jdProfile: any | null, s: Settings) =>
     streamSSE('/api/analyze', { type: 'resume', text, jdProfile }, s),

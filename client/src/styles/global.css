@@ -214,14 +214,15 @@ body {
   gap: 10px;
 }
 
-/* ── 面试区头部栏（历史按钮 + Welcome 同行）── */
+/* ── 面试区头部栏（Welcome 左对齐 + 功能按钮右对齐，同一行）── */
 .ir-top-bar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 10px;
+  flex-wrap: wrap;
   padding: 8px 4px 4px;
 }
-.ir-top-left { flex-shrink: 0; }
 .ir-welcome-hint {
   font-size: 13px;
   line-height: 1.5;
@@ -229,7 +230,9 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
   flex: 1;
+  min-width: 0;
 }
+.ir-top-actions { flex-shrink: 0; }
 
 /* ── 面试区文件上传卡 ── */
 .ir-upload-card .ant-card-body { padding: 12px !important; }
@@ -739,6 +742,7 @@ body {
 /* Layout */
 .mr-4 { margin-right: 4px; }
 .ant-tag.tag-tight { font-size: 10px; line-height: 16px; padding: 0 6px; margin: 0; }
+.ant-tag.model-status-tag { cursor: pointer; }
 .header-avatar.ant-avatar { cursor: pointer; background: var(--color-primary-gradient); font-size: 14px; box-shadow: 0 2px 8px rgba(20, 39, 63, 0.2); }
 .menu-user-name { font-weight: 600; }
 .app-tabs.ant-tabs .ant-tabs-nav {
