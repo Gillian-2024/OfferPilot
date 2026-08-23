@@ -17,7 +17,7 @@ interface Props {
 const FORMAT_LABELS: Record<string, string> = {
   jd: 'PDF / Word / HTML / Markdown',
   resume: 'PDF / Word / HTML / Markdown',
-  interview: 'PDF / Word / HTML / Markdown / 音频录音',
+  interview: 'PDF / Word / HTML / Markdown',
 };
 
 // 用原生 <label htmlFor> 绑定隐藏 file input，而非 antd Dragger。
@@ -29,7 +29,9 @@ export default function FileUpload({ settings, onText, label, accept }: Props) {
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
-  const inputId = useId();
+  // useId() 生成的 ID 含冒号（如 :r9:），Chrome 下 label[for] 绑定不稳定，
+  // sanitize 掉非字母数字字符确保 label-input 关联可靠。
+  const inputId = useId().replace(/[^a-zA-Z0-9_-]/g, '-');
 
   const handleUpload = async (file: File) => {
     setLoading(true);
@@ -99,8 +101,8 @@ export default function FileUpload({ settings, onText, label, accept }: Props) {
           setText(e.target.value);
           onText(e.target.value);
         }}
-        rows={6}
-        placeholder="或直接粘贴文本"
+        rows={3}
+        placeholder="直接粘贴文本"
       />
     </div>
   );

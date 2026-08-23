@@ -7,7 +7,7 @@ const KEYS = {
   history: (t: string) => `cjc:history:${t}`,
 };
 
-// 留空 = 不发 header = 服务端读 .env 默认（本机即 自建网关 网关 glm-5.2）
+// 留空 = 不发 header = 服务端读 .env 默认（本机可配自定义网关）
 export const defaultSettings: Settings = {};
 
 export function getSettings(): Settings {

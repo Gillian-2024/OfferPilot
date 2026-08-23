@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, Space, message, Card, Empty, Alert, Tag, Tooltip, Typography } from 'antd';
+import { Button, Space, message, Card, Empty, Alert, Tag, Tooltip } from 'antd';
 import {
   ThunderboltOutlined,
   ShareAltOutlined,
@@ -7,11 +7,10 @@ import {
   LinkOutlined,
   CheckCircleOutlined,
   LoadingOutlined,
-  ClockCircleOutlined,
   FileSearchOutlined,
 } from '@ant-design/icons';
-import { ThoughtChain } from '@ant-design/x';
 import FileUpload from '../shared/FileUpload';
+import Steps from '../shared/HorizontalSteps';
 import { JDResultView } from '../shared/ResultViews';
 import { api } from '../../api/client';
 import { Settings, JDResult } from '../../types';
@@ -66,21 +65,22 @@ export default function JDAnalysis({ settings }: { settings: Settings }) {
   };
 
   const activeIdx = steps.findIndex((st) => !st.done);
+  const displaySteps = steps.map((s, i) => ({ ...s, active: i === activeIdx }));
 
   return (
     <div className="tab-content">
       {/* 上传区 */}
-      <Card size="small" className="mb-16" title={
+      <Card size="small" className="mb-16 compact-upload-card" title={
         <Space>
           <FileSearchOutlined className="icon-primary" />
           上传 / 粘贴 JD
-          <Tag color="default" bordered={false} style={{ fontSize: '10px', opacity: 0.65 }}>JD即职位描述 + 职位要求</Tag>
+          <Tag color="default" bordered={false} style={{ fontSize: '10px', opacity: 0.65 }}>温馨提示：JD 即职位描述 + 职位要求</Tag>
         </Space>
       }>
-        <FileUpload settings={settings} onText={setText} label="上传 JD 文件（PDF / Word / HTML / Markdown）或粘贴文本" />
+        <FileUpload settings={settings} onText={setText} label="点击或拖拽上传（PDF / Word / HTML / Markdown / TXT）" />
       </Card>
 
-      {/* ThoughtChain — 增强版 */}
+      {/* 分析步骤 — 横向排列 */}
       {steps.length > 0 && (
         <Card size="small" className="thought-chain-card" title={
           <Space>
@@ -90,25 +90,7 @@ export default function JDAnalysis({ settings }: { settings: Settings }) {
         } extra={
           activeIdx < 0 && <Tag color="success" icon={<CheckCircleOutlined />} bordered={false}>完成</Tag>
         }>
-          <ThoughtChain
-            size="small"
-            collapsible
-            items={steps.map((s, i) => ({
-              key: String(i),
-              title: s.label,
-              status: s.done ? 'success' as const : i === activeIdx ? 'pending' as const : 'pending' as const,
-              icon: s.done
-                ? <CheckCircleOutlined className="step-icon--done" />
-                : i === activeIdx
-                  ? <LoadingOutlined className="step-icon--active" />
-                  : <ClockCircleOutlined className="step-icon--wait" />,
-              description: s.done
-                ? <Typography.Text type="success" className="fs-12">✓ 已完成</Typography.Text>
-                : i === activeIdx
-                  ? <Typography.Text className="step-desc--active">处理中…</Typography.Text>
-                  : <Typography.Text type="secondary" className="fs-12">等待</Typography.Text>,
-            }))}
-          />
+          <Steps steps={displaySteps} />
         </Card>
       )}
 
@@ -169,7 +151,7 @@ export default function JDAnalysis({ settings }: { settings: Settings }) {
 
       {/* 结果 */}
       <div className="step-detail-enter">
-        {result ? <JDResultView data={result} /> : !loading ? <Empty description="把 JD 交给领航员，4 步拆出岗位画像与关键词" /> : null}
+        {result ? <JDResultView data={result} /> : !loading ? <Empty description="上传JD，让领航员帮你4 步拆出岗位画像与关键词" /> : null}
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-export type Provider = 'openai' | 'claude' | 'domestic' | 'gateway';
+export type Provider = 'claude' | 'openai' | 'google' | 'deepseek' | 'tongyi' | 'doubao' | 'moonshot' | 'zhipu' | 'minimax' | 'gateway';
 
 export interface Settings {
   provider?: Provider;

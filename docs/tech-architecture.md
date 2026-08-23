@@ -48,7 +48,7 @@
 | 资产 | 现位置 | 迁移处置 |
 |---|---|---|
 | prompts/\*.js（jd / resume / interview / base） | server/src/prompts/ | **直接搬**（纯逻辑，无框架依赖）|
-| providers/index.js（自建网关 fetch wrapper） | server/src/providers/ | **直接搬** |
+| providers/index.js（Provider 工厂） | server/src/providers/ | **直接搬** |
 | utils/schemaShape.js + jsonExtract.js | server/src/utils/ | **直接搬**（绕 tool_use 的核心资产）|
 | routes/analyze.js（generateText 调用） | server/src/routes/ | 改 Route Handler，逻辑搬 |
 | routes/chat.js（SSE） | server/src/routes/ | 改 Route Handler streaming |
@@ -135,11 +135,11 @@
 
 - **Vercel**（免费 tier 够 demo）：关联 GitHub `Gillian-2024/OfferPilot`，main 自动部署。
 - 环境变量配置（双轨）：
-  - **本机自用**（本地 `.env.local`，不入 git）：网关 key + `ANTHROPIC_BASE_URL=llm-gateway.example.com/anthropic` + `ANTHROPIC_MODEL=tencent/glm-5.2`
-  - **上线 Vercel**（dashboard 配，不入 git）：`ZHIPU_API_KEY` + `ZHIPU_BASE_URL=https://open.bigmodel.cn/api/paas/v4` + `ZHIPU_MODEL=glm-5.2`
+  - **本机自用**（本地 `.env.local`，不入 git）：自定义 `.env` 配置，provider + base URL + model 按需填写
+  - **上线部署**（dashboard 配，不入 git）：选择公开 API（如智谱/通义/OpenAI），填写对应 key + 端点
   - Supabase 三项（URL / anon / service_role）本机与上线都配
-- ✅ **provider 已定（2026-08-22）**：上线走**智谱官方 API**（公网可达），自建网关 仅本机自用。
-  - 关键利好：智谱官方端点直接提供 `glm-5.2` 模型 ID（与 自建网关 映射的 `tencent/glm-5.2` 同源），**provider 切换无缝**——仅端点 + key 变，模型名不变，现有 prompt / schemaShape 调用链零改动。
+- ✅ **provider 已定（2026-08-22）**：上线走**智谱官方 API**（公网可达），本机可用自定义网关（如内部 LLM 服务）
+  - 关键利好：智谱官方端点直接提供 `glm-5.2` 模型 ID（与内部网关映射的 `tencent/glm-5.2` 同源），**provider 切换无缝**——仅端点 + key 变，模型名不变，现有 prompt / schemaShape 调用链零改动。
   - 智谱 API 为 OpenAI 兼容端点（`/chat/completions` + Bearer auth），用 `@ai-sdk/openai-compatible` 接入（现有 server 已有此包）。
   - 升级可选：GLM-5.3 已于 2026-08-19 上线 API（编程 / 智能体更强，定价与 5.2 一致）；保守沿用 5.2 上线，验证后再升。
 
@@ -167,4 +167,4 @@
 2. 差异点（个人知识 + 记忆）注入方式（§6.4）。
 
 ✅ 已定（2026-08-22）：
-- §8 provider：上线走智谱官方 API（`glm-5.2` 无缝），自建网关 仅本机自用。
+- §8 provider：上线走智谱官方 API（`glm-5.2` 无缝），本机可用自定义网关。

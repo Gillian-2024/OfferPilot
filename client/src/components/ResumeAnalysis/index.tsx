@@ -1,21 +1,20 @@
 import { useState } from 'react';
-import { Button, Space, message, Card, Empty, Alert, Drawer, Input, Typography, Tag, Collapse, Tooltip } from 'antd';
+import { Button, Space, message, Card, Empty, Alert, Drawer, Input, Typography, Tag, Tooltip, Collapse } from 'antd';
 import {
   ThunderboltOutlined,
   ShareAltOutlined,
   EditOutlined,
   FileTextOutlined,
   LinkOutlined,
-  RightOutlined,
   CheckCircleOutlined,
   LoadingOutlined,
-  ClockCircleOutlined,
   FileProtectOutlined,
   RedoOutlined,
+  RightOutlined,
 } from '@ant-design/icons';
-import { ThoughtChain } from '@ant-design/x';
 import XMarkdown from '@ant-design/x-markdown';
 import FileUpload from '../shared/FileUpload';
+import Steps from '../shared/HorizontalSteps';
 import { ResumeResultView, JDResultView } from '../shared/ResultViews';
 import { api } from '../../api/client';
 import { Settings, ResumeResult, SSEMessage } from '../../types';
@@ -42,6 +41,7 @@ export default function ResumeAnalysis({ settings, onGotoJD }: { settings: Setti
   const jdResult = getJDResult();
   const hasBaseline = !!jdResult;
   const activeIdx = steps.findIndex((st) => !st.done);
+  const displaySteps = steps.map((s, i) => ({ ...s, active: i === activeIdx }));
 
   const analyze = async () => {
     if (!text.trim()) return message.warning('请先上传或粘贴简历');
@@ -136,7 +136,7 @@ export default function ResumeAnalysis({ settings, onGotoJD }: { settings: Setti
   return (
     <div className="tab-content">
       <div className="ra-cols">
-        {/* 左:JD 对照 */}
+        {/* 左:JD 对照（手机端默认折叠） */}
         <div className="ra-side">
           {hasBaseline ? (
             <Collapse
@@ -195,16 +195,16 @@ export default function ResumeAnalysis({ settings, onGotoJD }: { settings: Setti
         {/* 右:简历拆解工作流 */}
         <div className="ra-main">
           {/* 上传区 */}
-          <Card size="small" className="mb-16" title={
+          <Card size="small" className="mb-16 compact-upload-card" title={
             <Space>
               <FileProtectOutlined className="icon-primary" />
               上传 / 粘贴简历
             </Space>
           }>
-            <FileUpload settings={settings} onText={setText} label="上传简历文件（PDF / Word / HTML / Markdown）或粘贴文本" />
+            <FileUpload settings={settings} onText={setText} label="点击或拖拽上传（PDF / Word / HTML / Markdown / TXT）" />
           </Card>
 
-          {/* ThoughtChain — 增强版 */}
+          {/* 分析步骤 — 横向排列 */}
           {steps.length > 0 && (
             <Card size="small" className="thought-chain-card" title={
               <Space>
@@ -214,25 +214,7 @@ export default function ResumeAnalysis({ settings, onGotoJD }: { settings: Setti
             } extra={
               activeIdx < 0 && <Tag color="success" icon={<CheckCircleOutlined />} bordered={false}>完成</Tag>
             }>
-              <ThoughtChain
-                size="small"
-                collapsible
-                items={steps.map((s, i) => ({
-                  key: String(i),
-                  title: s.label,
-                  status: s.done ? 'success' as const : 'pending' as const,
-                  icon: s.done
-                    ? <CheckCircleOutlined className="step-icon--done" />
-                    : i === activeIdx
-                      ? <LoadingOutlined className="step-icon--active" />
-                      : <ClockCircleOutlined className="step-icon--wait" />,
-                  description: s.done
-                    ? <Typography.Text type="success" className="fs-12">✓ 已完成</Typography.Text>
-                    : i === activeIdx
-                      ? <Typography.Text className="step-desc--active">处理中…</Typography.Text>
-                      : <Typography.Text type="secondary" className="fs-12">等待</Typography.Text>,
-                }))}
-              />
+              <Steps steps={displaySteps} />
             </Card>
           )}
 

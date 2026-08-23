@@ -71,7 +71,7 @@ export function buildJDSteps(jdText) {
       label: '岗位识别',
       system: BASE_SYSTEM,
       prompt: `把下面的 JD 当产品需求文档来拆。第一步：识别岗位基本信息。
-只基于原文，推断项加 [推测] 前缀。原文缺失字段输出「未提及」。
+只基于原文，推断项加 [推测]。缺失字段写「未提及」。
 
 【JD 原文】
 ${jdText}`,
@@ -80,8 +80,8 @@ ${jdText}`,
     (prev) => ({
       label: '需求拆解',
       system: BASE_SYSTEM,
-      prompt: `第二步：基于上一步的岗位信息，拆解硬性/软性要求和简历关键词。
-去虚词化：把「结果导向」「owner 意识」等翻译成可考察的具体行为。
+      prompt: `第二步：基于上一步的岗位信息，拆解硬要求和关键词。
+去虚词化：把「结果导向」「owner 意识」翻译成可考察的具体行为。
 软性素质仅从原文提炼，禁止补全。
 
 【上一步岗位信息】
@@ -94,8 +94,8 @@ ${jdText}`,
     (prev) => ({
       label: '考点预测 + 应届校准',
       system: BASE_SYSTEM,
-      prompt: `第三步：基于拆解结果预测面试考点，并做应届校招校准。
-考点按概率排序；red_flags 找加班暗示、模糊职责等信号。
+      prompt: `第三步：基于拆解结果预测面试考点（高/中/低概率），并做应届校招校准。
+red_flags 只找真正值得警惕的信号（加班暗示、模糊职责、画大饼）。
 
 【拆解结果】
 ${JSON.stringify(prev, null, 2)}`,
@@ -104,13 +104,11 @@ ${JSON.stringify(prev, null, 2)}`,
     (prev) => ({
       label: '岗位深解读',
       system: BASE_SYSTEM,
-      prompt: `第四步：把 JD 翻译成真实工作场景，帮应届生理解"这个岗位到底干什么"。
-- real_work_scenario：翻译 JD 职责为日常工作场景——每天做什么、和谁协作、核心挑战是什么。用应届生能听懂的话说。
-- industry_workflow：这个岗位在行业价值链的哪个位置——上游谁给输入、下游谁消费输出。简要画全景。
-- career_path.exits：3-5 个未来可转向的岗位方向（如 内容运营 → 用户增长 / 商业化运营 / 产品经理）
-- career_path.also_fit：2-3 个当前也适合投的相关岗位
-- kpi_and_barrier.kpis：3-5 个核心 KPI（如 DAU / 留存率 / GMV）
-- kpi_and_barrier.barriers：2-3 个做这行能成为壁垒的能力（别人不容易替代你的）
+      prompt: `第四步：把 JD 翻译成应届生能懂的真实工作场景。每节 2-3 句话，不要冗长段落。
+- real_work_scenario：日常做什么、和谁协作、核心挑战
+- industry_workflow：岗位在价值链的位置——上游谁给输入、下游谁消费输出（一句话）
+- career_path：exits（3个可转向方向）+ also_fit（2个相关岗位）
+- kpi_and_barrier：kpis（3个核心指标）+ barriers（2个壁垒能力）
 
 只基于 JD 原文 + 行业通识推断，推断标 [推测]。
 

@@ -291,19 +291,19 @@ export default function InterviewReview({ settings, onGotoJD, viewMode = 'prep' 
   // Prompts — 按模式切换，更丰富的图标和描述
   const reviewPrompts = [
     { key: 'simulate', icon: <FireOutlined className="icon-primary" />, label: '模拟追问', description: '面试官还会问什么' },
-    { key: 'satisfaction', icon: <SmileOutlined className="icon-primary" />, label: '判断满意度', description: '面试官信号分析' },
     { key: 'summary', icon: <BookOutlined className="icon-primary" />, label: '总结表现', description: '亮点与不足' },
     { key: 'failure', icon: <AimOutlined className="icon-primary" />, label: '失败归因', description: '可能的顾虑' },
     { key: 'deep', icon: <RocketOutlined className="icon-primary" />, label: '关键深挖', description: '最有深度的题' },
+    { key: 'satisfaction', icon: <SmileOutlined className="icon-primary" />, label: '判断满意度', description: '面试官信号分析' },
   ];
 
   const prepPrompts = [
+    { key: 'intro', icon: <UserOutlined className="icon-primary" />, label: '自我介绍', description: '三段式框架' },
     { key: 'predict', icon: <RocketOutlined className="icon-primary" />, label: '预测面试题', description: '含参考答案框架' },
     { key: 'company', icon: <AimOutlined className="icon-primary" />, label: '公司定向', description: '定向准备' },
     { key: 'concept', icon: <SwapOutlined className="icon-primary" />, label: '概念辨析', description: '对比题练习' },
     { key: 'scenario', icon: <QuestionCircleOutlined className="icon-primary" />, label: '场景分析', description: '产品sense' },
     { key: 'ask-back', icon: <MessageOutlined className="icon-primary" />, label: '反问技巧', description: '景别法' },
-    { key: 'intro', icon: <UserOutlined className="icon-primary" />, label: '自我介绍', description: '三段式框架' },
     { key: 'hr', icon: <SafetyCertificateOutlined className="icon-primary" />, label: 'HR面准备', description: '六维度覆盖' },
     { key: 'salary', icon: <DollarOutlined className="icon-primary" />, label: '薪资谈判', description: '策略话术' },
   ];
@@ -349,7 +349,7 @@ export default function InterviewReview({ settings, onGotoJD, viewMode = 'prep' 
   return (
     <div className="tab-content">
       <div className="interview-layout">
-        {/* 左：对照 JD + 简历摘要（只读钉住） */}
+        {/* 左：对照 JD + 简历摘要（只读钉住，手机端默认折叠） */}
         <aside className="interview-sidebar">
           {hasContext ? (
             <>
@@ -453,7 +453,7 @@ export default function InterviewReview({ settings, onGotoJD, viewMode = 'prep' 
           )}
 
           {/* 文件上传区 — 先上传，再聊天 */}
-          <Card size="small" className="mb-16 ir-upload-card">
+          <Card size="small" className="mb-16 ir-upload-card compact-upload-card">
             <Space direction="vertical" size={6} style={{ width: '100%' }}>
               <Space>
                 <InboxOutlined className="icon-primary" />
@@ -462,94 +462,82 @@ export default function InterviewReview({ settings, onGotoJD, viewMode = 'prep' 
               <FileUpload
                 settings={settings}
                 onText={setUploadText}
-                label="点击或拖拽上传（PDF / Word / HTML / Markdown / 音频录音）"
+                label="点击或拖拽上传（PDF / Word / HTML / Markdown / TXT）"
               />
-              <Typography.Text type="secondary" className="fs-12">
-                💡 支持直接粘贴{' '}
-                <Tag color="blue">飞书妙计</Tag>{' '}
-                {' '}<Tag color="cyan">腾讯会议</Tag>{' '}
-                {' '}<Tag color="orange">豆包会议纪要</Tag>{' '}
-                等导出文本；音频录音可上传 .mp3/.m4a/.wav 文件（需已转写为文本）
-              </Typography.Text>
             </Space>
           </Card>
 
-          {/* 面试筛选 */}
-          <div className="ir-filters">
-            <Space size={8} wrap>
-              <Space size={4}>
-                <Typography.Text type="secondary" className="fs-13">第几面</Typography.Text>
+          {/* 对话区（含筛选、对话气泡、Prompts、输入框） */}
+          <Card
+            size="small"
+            className="chat-card"
+          >
+            {/* 筛选栏 — 两行布局：第几面 / 面试时长，融入卡片顶部金色顶线 */}
+            <div className="card-filter-bar">
+              <div className="card-filter-row">
+                <span className="filter-label">第几面</span>
                 <Radio.Group value={round} onChange={(e) => setRound(e.target.value)} optionType="button" buttonStyle="outline" size="small">
                   {['第一面', '第二面', '第三面', '第四面', '第五面'].map((r) => (
                     <Radio.Button key={r} value={r}>{r}</Radio.Button>
                   ))}
                 </Radio.Group>
-              </Space>
-              <Divider type="vertical" style={{ height: 20, margin: '0 4px' }} />
-              <Space size={4}>
-                <Typography.Text type="secondary" className="fs-13">面试时长</Typography.Text>
+              </div>
+              <div className="card-filter-row">
+                <span className="filter-label">面试时长</span>
                 <Radio.Group value={duration} onChange={(e) => setDuration(e.target.value)} optionType="button" buttonStyle="outline" size="small">
                   {['10-20分钟', '20-40分钟', '40分钟以上'].map((d) => (
                     <Radio.Button key={d} value={d}>{d}</Radio.Button>
                   ))}
                 </Radio.Group>
-              </Space>
-            </Space>
-          </div>
+              </div>
+            </div>
 
-          {/* 对话区 */}
-          <Card
-            size="small"
-            className="chat-card"
-          >
             {messages.length > 0 && (
               <Bubble.List autoScroll roles={roles} items={bubbleItems} />
             )}
-          </Card>
 
-          {/* 快捷 Prompts — 对话后的功能选项 */}
-          <div className="prompts-wrapper">
-            <Prompts
-              items={viewMode === 'review' ? reviewPrompts : prepPrompts}
-              onItemClick={handlePromptClick}
-              wrap
-            />
-          </div>
-
-          {/* 对话轮次计数 */}
-          {messages.length > 0 && (
-            <div className="chat-toolbar">
-              <Typography.Text type="secondary" className="fs-12">
-                {messages.filter((m) => m.role === 'user').length} 轮对话
-              </Typography.Text>
+            {/* 快捷 Prompts — 对话后的功能选项（8 宫格） */}
+            <div className="card-prompts">
+              {(viewMode === 'review' ? reviewPrompts : prepPrompts).map((p) => (
+                <button
+                  key={p.key}
+                  className="card-prompt-card"
+                  onClick={() => handlePromptClick({ data: { key: p.key } })}
+                  type="button"
+                >
+                  <span className="card-prompt-icon">{p.icon}</span>
+                  <span className="card-prompt-label">{p.label}</span>
+                  <span className="card-prompt-desc">{p.description}</span>
+                </button>
+              ))}
             </div>
-          )}
 
-          {/* Suggestion + Sender — 输入框带建议 */}
-          <Suggestion
-            items={suggestionItems}
-            onSelect={(value) => send(value)}
-            block
-          >
-            {({ onTrigger, onKeyDown }) => (
-              <Sender
-                value={inputValue}
-                onChange={(val) => {
-                  setInputValue(val);
-                  onTrigger(val === '/' ? undefined : false);
-                }}
-                onSubmit={send}
-                loading={loading}
-                onCancel={() => setLoading(false)}
-                onKeyDown={onKeyDown}
-                placeholder={
-                  viewMode === 'prep'
-                    ? '说说你的准备需求… 输入 / 查看建议'
-                    : '描述面试题目 + 你的回答… 输入 / 查看建议'
-                }
-              />
-            )}
-          </Suggestion>
+            {/* Suggestion + Sender — 输入框带建议 */}
+            <Suggestion
+              items={suggestionItems}
+              onSelect={(value) => send(value)}
+              block
+            >
+              {({ onTrigger, onKeyDown }) => (
+                <Sender
+                  value={inputValue}
+                  onChange={(val) => {
+                    setInputValue(val);
+                    onTrigger(val === '/' ? undefined : false);
+                  }}
+                  onSubmit={send}
+                  loading={loading}
+                  onCancel={() => setLoading(false)}
+                  onKeyDown={onKeyDown}
+                  placeholder={
+                    viewMode === 'prep'
+                      ? '说说你的准备需求… 输入 / 查看建议'
+                      : '描述面试题目 + 你的回答… 输入 / 查看建议'
+                  }
+                />
+              )}
+            </Suggestion>
+          </Card>
 
           {shareUrl && (
             <Alert

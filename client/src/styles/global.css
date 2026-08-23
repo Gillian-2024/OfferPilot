@@ -81,13 +81,13 @@ body {
   flex-direction: column;
 }
 
-/* ── Header ── */
+/* ── Header · 流体高度 + 字号 ── */
 .app-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
-  height: 52px;
+  padding: 0 clamp(12px, 3vw, 24px);
+  height: clamp(42px, 6vh, 56px);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -123,16 +123,16 @@ body {
 }
 
 .app-title {
-  font-size: 17px;
+  font-size: clamp(13px, 1.6vw, 18px);
   font-weight: 700;
   letter-spacing: 0.02em;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: clamp(4px, 0.8vw, 8px);
 }
-.app-logo { width: 22px; height: 22px; flex-shrink: 0; }
+.app-logo { width: clamp(18px, 2.5vw, 22px); height: clamp(18px, 2.5vw, 22px); flex-shrink: 0; }
 .app-title .sub {
-  font-size: 12px;
+  font-size: clamp(9px, 1.1vw, 12px);
   font-weight: 400;
   padding: 2px 8px;
   border-radius: var(--radius-sm);
@@ -155,25 +155,26 @@ body {
 }
 
 .tab-content {
-  padding: 20px 24px;
+  padding: clamp(8px, 2vw, 24px);
   max-width: 1100px;
   margin: 0 auto;
   width: 100%;
 }
 
-/* ── 面试区布局 ── */
+/* ── 面试区布局 · 流体侧边栏（不再用固定百分比，拖窗口无断裂）── */
 .interview-layout {
   display: flex;
-  gap: 16px;
+  gap: clamp(8px, 1.5vw, 16px);
   align-items: flex-start;
 }
 .interview-sidebar {
-  width: 36%;
-  min-width: 280px;
-  max-width: 380px;
+  /* 流体宽度：小屏 ≥240px，中等 ~28%，大屏 ≤340px —— 随窗口连续缩放 */
+  width: clamp(240px, 28%, 340px);
+  min-width: 240px;
+  max-width: 340px;
   position: sticky;
   top: 68px;
-  max-height: calc(100vh - 88px);
+  max-height: calc(100vh - 72px);
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--color-border-light) transparent;
@@ -211,31 +212,36 @@ body {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
 }
 
-/* ── 面试区头部栏（Welcome 左对齐 + 功能按钮右对齐，同一行）── */
+/* ── 面试区头部栏（Welcome 金色信息条 + 功能按钮右对齐）── */
 .ir-top-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
   flex-wrap: wrap;
-  padding: 8px 4px 4px;
+  padding: 8px 4px 6px;
 }
 .ir-welcome-hint {
-  font-size: 13px;
+  display: inline-block;
+  padding: clamp(4px, 1vw, 6px) clamp(8px, 1.5vw, 12px);
+  background: var(--color-gold-light);
+  border-left: clamp(2px, 0.4vw, 3px) solid var(--color-gold);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: clamp(10px, 1.2vw, 12px);
   line-height: 1.5;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex: 1;
-  min-width: 0;
+  color: var(--color-gold-deep);
+  font-weight: 500;
+  max-width: min(70%, 400px);
 }
 .ir-top-actions { flex-shrink: 0; }
 
 /* ── 面试区文件上传卡 ── */
 .ir-upload-card .ant-card-body { padding: 12px !important; }
+
+/* ── 紧凑上传卡（通用）── */
+.compact-upload-card .ant-card-body { padding: 6px 12px !important; }
 
 /* ── 历史面板 ── */
 .history-panel {
@@ -253,7 +259,7 @@ body {
 /* ── 对话卡片 ── */
 .chat-card {
   border-radius: var(--radius-lg) !important;
-  border: 1.5px solid color-mix(in srgb, var(--color-bubble-blue) 20%, transparent) !important;
+  border: 1.5px solid var(--color-border) !important;
   box-shadow: 0 4px 24px rgba(30, 90, 212, 0.06), 0 1px 4px rgba(0, 0, 0, 0.04) !important;
   display: flex;
   flex-direction: column;
@@ -263,7 +269,8 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 20px 16px 12px;
+  gap: 12px;
+  padding: 16px 16px 12px;
   background-image: linear-gradient(180deg, var(--color-bubble-blue-soft) 0%, transparent 60%);
 }
 .chat-card .ant-bubble-list { flex: 1; }
@@ -357,29 +364,104 @@ body {
 }
 @keyframes blink { 50% { opacity: 0; } }
 
-/* ── Prompts 区域 ── */
-.prompts-wrapper { margin-top: 2px; }
-.ir-filters { margin-bottom: 12px; }
-.ir-filters .ant-radio-button-wrapper {
-  height: 26px !important;
-  line-height: 24px !important;
-  font-size: 13px !important;
-  padding: 0 10px !important;
-  border-radius: 4px !important;
-  margin-left: 0 !important;
+/* ── ChatCard 内筛选栏 — 两行布局，融入卡片顶部 ── */
+.card-filter-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 14px 6px;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  border-top: none !important;
 }
-.ir-filters .ant-radio-button-wrapper:first-child {
-  border-radius: 4px 0 0 4px !important;
+/* 每行：标签 + 胶囊按钮组 */
+.card-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
-.ir-filters .ant-radio-button-wrapper:last-child {
-  border-radius: 0 4px 4px 0 !important;
+/* 筛选标签 — 金色小圆点 + 加粗文字 */
+.filter-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  margin-right: 2px;
 }
-.ir-filters .ant-radio-button-wrapper-checked {
+.filter-label::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-gold);
+  flex-shrink: 0;
+}
+/* AntD Radio.Button → 胶囊 pill，按钮间有间距 */
+.card-filter-row .ant-radio-button-wrapper {
+  height: 28px !important;
+  line-height: 26px !important;
+  font-size: 12px !important;
+  padding: 0 14px !important;
+  border-radius: 999px !important;
+  margin-left: 4px !important;
+  margin-right: 4px !important;
+  border: 1px solid var(--color-border) !important;
+  background: var(--color-bg-elevated) !important;
+  color: var(--color-text-secondary) !important;
+  transition: all var(--transition-fast) !important;
+  box-shadow: 0 1px 2px rgba(20, 39, 63, 0.04) !important;
+}
+.card-filter-row .ant-radio-button-wrapper:hover {
+  border-color: var(--color-primary) !important;
+  color: var(--color-primary) !important;
+  box-shadow: 0 2px 6px rgba(20, 39, 63, 0.08) !important;
+}
+.card-filter-row .ant-radio-button-wrapper-checked {
   z-index: 1 !important;
+  background: var(--color-primary) !important;
+  color: #fff !important;
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 2px 8px rgba(20, 39, 63, 0.18) !important;
 }
-.ant-prompts-item:hover {
-  box-shadow: var(--shadow-md) !important;
+
+/* ── 快捷 Prompts — 3-column grid，手写按钮绕过 AntD X Flex 布局 ── */
+.card-prompts {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.card-prompts button {
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-elevated);
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+  font-family: var(--font-sans);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.card-prompts button:hover {
+  border-color: var(--color-gold);
+  box-shadow: 0 4px 16px rgba(184, 134, 11, 0.08);
   transform: translateY(-1px);
+}
+.card-prompts button .card-prompt-icon { font-size: 16px; }
+.card-prompts button .card-prompt-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.card-prompts button .card-prompt-desc {
+  font-size: 10px;
+  color: var(--color-text-tertiary);
 }
 
 /* ── 工具栏 ── */
@@ -408,16 +490,14 @@ body {
 }
 .ant-sender {
   border-radius: var(--radius-lg) !important;
-  border: 1px solid color-mix(in srgb, var(--color-bubble-blue) 25%, transparent) !important;
-  box-shadow: 0 4px 16px var(--color-bubble-blue-soft), 0 0 0 3px color-mix(in srgb, var(--color-bubble-blue) 4%, transparent) !important;
+  border: 1.5px solid var(--color-border) !important;
+  background: var(--color-bg-elevated) !important;
+  box-shadow: 0 2px 8px rgba(20, 39, 63, 0.04) !important;
   transition: all var(--transition-fast) !important;
 }
-:root:not([data-theme="dark"]) .ant-sender {
-  background: linear-gradient(180deg, var(--color-gold-light) 0%, var(--color-bg-elevated) 30%) !important;
-}
 .ant-sender:focus-within {
-  border-color: var(--color-bubble-blue) !important;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-bubble-blue) 12%, transparent), 0 6px 24px var(--color-bubble-blue-soft) !important;
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 8%, transparent), 0 4px 16px rgba(20, 39, 63, 0.06) !important;
 }
 .ant-bubble-list {
   gap: 10px !important;
@@ -478,8 +558,8 @@ body {
   box-shadow: 0 4px 20px rgba(184, 134, 11, 0.06), var(--shadow-md);
 }
 
-/* ── ResultViews · 学院藏蓝金 ── */
-.rv-stack { display: flex; flex-direction: column; gap: 12px; }
+/* ── ResultViews · 紧凑化 ── */
+.rv-stack { display: flex; flex-direction: column; gap: 6px; }
 .rv-card {
   border-radius: var(--radius-md) !important;
   background: var(--color-bg-elevated) !important;
@@ -488,15 +568,13 @@ body {
 }
 
 /* ── ResultViews · 学院藏蓝金（标题+Chip） ── */
-.rv-stack { display: flex; flex-direction: column; gap: 12px; }
 .rv-card .ant-card-head { min-height: 40px; padding: 0 16px; }
-.rv-card .ant-card-head-title { padding: 9px 0; }
-.rv-title { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--color-text); }
-.rv-title::before { content: ''; width: 3px; height: 13px; border-radius: 2px; background: var(--color-gold); flex-shrink: 0; }
-.rv-title-note { font-size: 12px; font-weight: 400; color: var(--color-text-tertiary); }
-.rv-card-extra { font-size: 12px; color: var(--color-text-tertiary); }
+.rv-card .ant-card-head-title { padding: 7px 0; font-size: 12.5px; }
+.rv-title::before { content: ''; width: 2.5px; height: 12px; border-radius: 2px; background: var(--color-gold); flex-shrink: 0; }
+.rv-title-note { font-size: 11px; font-weight: 400; color: var(--color-text-tertiary); }
+.rv-card-extra { font-size: 11px; color: var(--color-text-tertiary); }
 
-.rv-duo { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: stretch; }
+.rv-duo { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; align-items: stretch; }
 .rv-duo > .ant-card { height: 100%; }
 .rv-duo--radar { grid-template-columns: minmax(280px, 360px) minmax(0, 1fr); }
 .rv-duo--radar > .rv-card:first-child { display: flex; flex-direction: column; }
@@ -504,16 +582,34 @@ body {
 .rv-duo--radar > .rv-card:first-child .ant-card-body > div { display: flex; flex-direction: column; justify-content: center; }
 .rv-chart-loading { display: block; margin: 100px auto; }
 
-.rv-def-row { display: flex; gap: 10px; padding: 6px 0; align-items: flex-start; font-size: 13px; }
-.rv-def-row + .rv-def-row { border-top: 1px solid var(--color-border-light); }
-.rv-def-label { flex: 0 0 68px; color: var(--color-text-tertiary); }
+
+
+.rv-def-row { display: flex; gap: 6px; padding: 3px 0; align-items: flex-start; font-size: 12.5px; }
+.rv-def-label { flex: 0 0 64px; color: var(--color-text-tertiary); font-weight: 500; }
+
+/* ── Horizontal Steps（分析步骤横向排列） ── */
+.hsteps { display: flex; align-items: center; }
+.hstep { display: flex; align-items: center; position: relative; z-index: 1; }
+.hstep-icon { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; border: 2px solid var(--color-border); background: var(--color-bg-elevated); transition: all 0.3s; }
+.hstep--done .hstep-icon { border-color: var(--color-status-ok); color: var(--color-status-ok); }
+.hstep--active .hstep-icon { border-color: var(--color-primary); box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-primary) 18%, transparent); animation: step-pulse 1.5s infinite; }
+@keyframes step-pulse { 0%, 100% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-primary) 18%, transparent); } 50% { box-shadow: 0 0 0 10px transparent; } }
+.hstep-icon-wait { font-size: 11px; font-weight: 600; color: var(--color-text-tertiary); }
+.hstep-line { flex: 1; min-width: 20px; max-width: 120px; height: 2px; background: var(--color-border); margin: 0 4px; transition: background 0.3s; }
+.hstep-line--done { background: var(--color-status-ok); }
+.hstep-line--active { background: linear-gradient(90deg, var(--color-primary), var(--color-border)); }
+.hstep-body { margin-left: 6px; flex-shrink: 0; min-width: 0; }
+.hstep-label { font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hstep-desc { font-size: 11px; color: var(--color-text-tertiary); margin-top: 1px; }
+.hstep-desc--active { color: var(--color-primary-text); animation: blink-dot 1.2s steps(2, start) infinite; }
+@keyframes blink-dot { to { opacity: 0; } }
 
 /* Chip 体系 */
-.rv-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.rv-chips { display: flex; flex-wrap: wrap; gap: 3px; }
 .rv-chip {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 2px 10px; border-radius: 999px; border: 1px solid transparent;
-  font-size: 12px; line-height: 20px; color: var(--color-text-secondary);
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 1.5px 8px; border-radius: 999px; border: 1px solid transparent;
+  font-size: 11px; line-height: 18px; color: var(--color-text-secondary);
   background: var(--color-bg); border-color: var(--color-border);
   max-width: 100%;
 }
@@ -524,12 +620,13 @@ body {
 .rv-chip--miss { background: color-mix(in srgb, var(--color-status-miss) 8%, transparent); border-color: transparent; color: var(--color-status-miss); font-weight: 500; }
 .rv-chip--miss-outline { background: transparent; border-color: color-mix(in srgb, var(--color-status-miss) 40%, transparent); color: var(--color-status-miss); }
 .rv-chip--must { background: var(--color-primary); border-color: var(--color-primary); color: #fff; font-weight: 600; }
+.rv-chip--neutral { background: var(--color-gold-light); border-color: transparent; color: var(--color-gold-deep); font-weight: 500; }
 
 /* JD hero */
-.rv-jd-hero { display: flex; justify-content: space-between; gap: 16px; align-items: center; }
+.rv-jd-hero { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
 .rv-jd-hero-main { min-width: 0; }
-.rv-jd-profile { font-size: 18px; font-weight: 700; line-height: 1.4; margin-top: 8px; }
-.rv-jd-viable-text { font-size: 13px; color: var(--color-text-secondary); margin-top: 6px; }
+.rv-jd-profile { font-size: 16px; font-weight: 700; line-height: 1.4; margin-top: 4px; }
+.rv-jd-viable-text { font-size: 12px; color: var(--color-text-secondary); margin-top: 4px; }
 .rv-verdict {
   flex-shrink: 0; padding: 5px 14px; border-radius: 999px;
   font-size: 13px; font-weight: 600; white-space: nowrap;
@@ -539,30 +636,26 @@ body {
 .rv-flag-list { margin: 0; padding-left: 16px; }
 
 /* 筛选优先级 */
-.rv-prio-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 7px 0; font-size: 13px; }
-.rv-prio-row + .rv-prio-row { border-top: 1px solid var(--color-border-light); }
+.rv-prio-row { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; padding: 4px 0; font-size: 12px; }
 .rv-prio-item { font-weight: 500; }
-.rv-prio-note { flex-basis: 100%; font-size: 12px; color: var(--color-text-tertiary); padding-left: 2px; }
+.rv-prio-note { flex-basis: 100%; font-size: 11px; color: var(--color-text-tertiary); padding-left: 2px; margin-top: 1px; }
 
 /* 面试考点 */
-.rv-focus-row { display: flex; gap: 10px; padding: 8px 0; align-items: flex-start; }
-.rv-focus-row + .rv-focus-row { border-top: 1px solid var(--color-border-light); }
-.rv-focus-row .rv-chip { flex-shrink: 0; margin-top: 1px; }
-.rv-focus-main { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-.rv-focus-topic { font-size: 13px; font-weight: 600; }
-.rv-focus-prep { font-size: 12.5px; color: var(--color-text-secondary); line-height: 1.6; }
+.rv-focus-row { display: flex; gap: 8px; padding: 4px 0; align-items: flex-start; font-size: 12.5px; }
+.rv-focus-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.rv-focus-topic { font-size: 12.5px; font-weight: 600; }
+.rv-focus-prep { font-size: 11.5px; color: var(--color-text-secondary); line-height: 1.55; }
 
 .rv-prose { margin: 0; white-space: pre-wrap; font-size: 13px; line-height: 1.75; color: var(--color-text-secondary); }
 
 /* 简历 hero */
-.rv-hero { display: flex; align-items: center; gap: 20px; }
-.rv-hero svg { flex-shrink: 0; }
-.rv-hero-body { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
-.rv-hero-kicker { font-size: 12px; font-weight: 600; letter-spacing: 0.06em; color: var(--color-gold-deep); }
-.rv-hero-positioning { font-size: 16px; font-weight: 700; line-height: 1.55; }
-.rv-hero-basis { font-size: 12.5px; color: var(--color-text-tertiary); line-height: 1.6; }
+.rv-hero { display: flex; align-items: center; gap: 12px; }
+.rv-hero-body { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.rv-hero-kicker { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: var(--color-gold-deep); }
+.rv-hero-positioning { font-size: 15px; font-weight: 700; line-height: 1.5; }
+.rv-hero-basis { font-size: 11.5px; color: var(--color-text-tertiary); line-height: 1.5; }
 .rv-diff {
-  margin-top: 14px; padding: 10px 14px;
+  margin-top: 10px; padding: 8px 12px;
   background: var(--color-gold-light); border-left: 3px solid var(--color-gold);
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   font-size: 13.5px; line-height: 1.7;
@@ -570,8 +663,7 @@ body {
 .rv-diff-label { font-size: 12px; font-weight: 700; color: var(--color-gold-deep); margin-right: 8px; }
 
 /* gap 矩阵 */
-.rv-gap-row { display: flex; gap: 10px; padding: 10px 0; align-items: flex-start; }
-.rv-gap-row + .rv-gap-row { border-top: 1px solid var(--color-border-light); }
+.rv-gap-row { display: flex; gap: 8px; padding: 5px 0; align-items: flex-start; font-size: 12.5px; }
 .rv-status {
   flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px;
   font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: var(--radius-sm);
@@ -580,7 +672,7 @@ body {
 .rv-status--ok { color: var(--color-status-ok); background: color-mix(in srgb, var(--color-status-ok) 10%, transparent); }
 .rv-status--part { color: var(--color-status-part); background: color-mix(in srgb, var(--color-status-part) 11%, transparent); }
 .rv-status--miss { color: var(--color-status-miss); background: color-mix(in srgb, var(--color-status-miss) 9%, transparent); }
-.rv-gap-main { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.rv-gap-main { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .rv-gap-req { font-size: 13.5px; font-weight: 600; line-height: 1.5; }
 .rv-gap-dim {
   display: inline-block; margin-right: 6px; padding: 0 6px;
@@ -592,17 +684,17 @@ body {
 .rv-gap-miss-text { font-size: 12.5px; font-weight: 500; color: var(--color-status-miss); line-height: 1.6; }
 
 /* 关键词命中 */
-.rv-kw-group { margin-bottom: 12px; }
+.rv-kw-group { margin-bottom: 8px; }
 .rv-kw-group:last-child { margin-bottom: 0; }
-.rv-kw-label { font-size: 12px; color: var(--color-text-tertiary); margin-bottom: 6px; }
+.rv-kw-label { font-size: 12px; color: var(--color-text-tertiary); margin-bottom: 4px; }
 .rv-kw-group .rv-chip { cursor: default; }
 
 /* 逐模块诊断 */
-.rv-module { padding: 8px 0; }
-.rv-module + .rv-module { border-top: 1px solid var(--color-border-light); }
+.rv-module { padding: 5px 0; }
+.rv-module + .rv-module { border-top: none; }
 .rv-module-head { font-size: 13.5px; font-weight: 600; margin-bottom: 4px; }
 .rv-module-count { margin-left: 6px; font-size: 12px; font-weight: 400; color: var(--color-text-tertiary); }
-.rv-issue { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; padding: 3px 0; font-size: 13px; }
+.rv-issue { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; padding: 2px 0; font-size: 13px; }
 .rv-sev {
   flex-shrink: 0; display: inline-flex; padding: 0 7px; border-radius: 4px;
   font-size: 11px; font-weight: 700; line-height: 18px;
@@ -619,8 +711,8 @@ body {
 
 /* Quick Wins */
 .rv-wins { margin: 0; padding: 0; list-style: none; }
-.rv-win { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; font-size: 13.5px; line-height: 1.6; }
-.rv-win + .rv-win { border-top: 1px solid var(--color-border-light); }
+.rv-win { display: flex; gap: 10px; align-items: flex-start; padding: 5px 0; font-size: 13.5px; line-height: 1.6; }
+.rv-win + .rv-win { border-top: none; }
 .rv-win-num {
   flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%;
   background: var(--color-primary); color: #fff;
@@ -628,43 +720,143 @@ body {
   display: inline-flex; align-items: center; justify-content: center;
 }
 
-/* ── 响应式 ── */
-@media (max-width: 900px) {
-  .rv-duo, .rv-duo--radar { grid-template-columns: 1fr; }
+/* ── Prompts Grid · auto-fit 流体列数，有空间自动 3 列、挤了自然缩到 2/1 ── */
+.card-prompts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: clamp(4px, 1vw, 8px);
 }
-@media (max-width: 768px) {
-  .app-header { padding: 0 12px; height: 48px; }
-  .app-title { font-size: 15px; }
-  .app-title .sub { display: none; }
-  .tab-content { padding: 12px; }
-  .interview-layout { flex-direction: column; }
-  .interview-sidebar {
-    width: 100%;
-    max-width: none;
-    position: static;
-    max-height: none;
-  }
-  .interview-chat { min-width: 0; }
+.card-prompts button {
+  padding: clamp(6px, 1.5vw, 10px) clamp(6px, 1.5vw, 12px);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-elevated);
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+  font-family: var(--font-sans);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.card-prompts button:hover {
+  border-color: var(--color-gold);
+  box-shadow: 0 4px 16px rgba(184, 134, 11, 0.08);
+  transform: translateY(-1px);
+}
+.card-prompts button .card-prompt-icon { font-size: clamp(13px, 1.4vw, 16px); }
+.card-prompts button .card-prompt-label {
+  font-size: clamp(10px, 1.2vw, 12px);
+  font-weight: 600;
+  color: var(--color-text);
+}
+.card-prompts button .card-prompt-desc {
+  font-size: clamp(8px, 1vw, 10px);
+  color: var(--color-text-tertiary);
 }
 
-@media (max-width: 480px) {
-  .tab-content { padding: 8px; }
-  .chat-toolbar { flex-direction: column; gap: 4px; align-items: flex-start; }
+/* ── 筛选栏 · 流体间距 + 字号 ── */
+.card-filter-bar {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(4px, 1vw, 8px);
+  padding: clamp(4px, 1vw, 8px) clamp(6px, 1.5vw, 14px) clamp(2px, 0.8vw, 6px);
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  border-top: none !important;
 }
-
-/* Ghost button (登录等) — header 上已有 :root 选择器覆盖，这里只处理 body 上的 */
-.ant-btn.ant-btn-ghost:not(.ant-btn-primary):not(.header-ghost) {
+.filter-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: clamp(9px, 1.1vw, 12px);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  margin-right: 2px;
+}
+.filter-label::before {
+  content: '';
+  width: clamp(4px, 0.6vw, 6px);
+  height: clamp(4px, 0.6vw, 6px);
+  border-radius: 50%;
+  background: var(--color-gold);
+  flex-shrink: 0;
+}
+.card-filter-row .ant-radio-button-wrapper {
+  height: clamp(24px, 3.5vh, 28px);
+  line-height: clamp(22px, 3.3vh, 26px);
+  font-size: clamp(9px, 1.1vw, 12px) !important;
+  padding: 0 clamp(6px, 1.2vw, 14px) !important;
+  border-radius: 999px !important;
+  margin-left: 4px !important;
+  margin-right: 4px !important;
+  border: 1px solid var(--color-border) !important;
+  background: var(--color-bg-elevated) !important;
+  color: var(--color-text-secondary) !important;
+  transition: all var(--transition-fast) !important;
+  box-shadow: 0 1px 2px rgba(20, 39, 63, 0.04) !important;
+}
+.card-filter-row .ant-radio-button-wrapper:hover {
+  border-color: var(--color-primary) !important;
+  color: var(--color-primary) !important;
+  box-shadow: 0 2px 6px rgba(20, 39, 63, 0.08) !important;
+}
+.card-filter-row .ant-radio-button-wrapper-checked {
+  z-index: 1 !important;
+  background: var(--color-primary) !important;
   color: #fff !important;
-  border-color: rgba(255, 255, 255, 0.6) !important;
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 2px 8px rgba(20, 39, 63, 0.18) !important;
 }
-.ant-btn.ant-btn-ghost:not(.ant-btn-primary):not(.header-ghost):hover {
+
+/* ── 对话卡片主体 · 流体 padding ── */
+.chat-card .ant-card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(6px, 1.5vw, 12px);
+  padding: clamp(8px, 2vw, 16px) clamp(8px, 2vw, 16px) clamp(4px, 1vw, 12px);
+  background-image: linear-gradient(180deg, var(--color-bubble-blue-soft) 0%, transparent 60%);
+}
+
+/* ── Chat Markdown · 流体字号 ── */
+.chat-markdown {
+  font-size: clamp(12px, 1.4vw, 14px);
+  line-height: 1.75;
+}
+.chat-markdown h1,
+.chat-markdown h2,
+.chat-markdown h3 {
+  margin-top: clamp(8px, 2vw, 16px);
+  margin-bottom: clamp(4px, 1vw, 8px);
+  font-weight: 600;
+}
+.chat-markdown h1 { font-size: clamp(15px, 2vw, 18px); }
+.chat-markdown h2 { font-size: clamp(13px, 1.7vw, 16px); }
+.chat-markdown h3 { font-size: clamp(12px, 1.5vw, 15px); }
+.chat-markdown p { margin: clamp(3px, 0.8vw, 6px) 0; }
+.chat-markdown ul, .chat-markdown ol { padding-left: clamp(12px, 2vw, 20px); }
+.chat-markdown li { margin: clamp(2px, 0.5vw, 3px) 0; }
+.chat-markdown code {
+  background: var(--color-bg);
   color: #fff !important;
   border-color: #fff !important;
   background: rgba(255, 255, 255, 0.15) !important;
 }
 
-/* Focus ring — 金色光晕 */
-*:focus-visible {
+/* Focus ring — 仅交互元素（按钮/输入/链接），气泡文本不圈金框 */
+button:focus-visible,
+input:focus-visible,
+.ant-sender textarea:focus-visible {
+  outline: none !important;
+}
+textarea:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+[role="switch"]:focus-visible,
+[role="tab"]:focus-visible {
   outline: 2px solid var(--color-gold) !important;
   outline-offset: 2px !important;
 }
@@ -708,17 +900,6 @@ body {
 .interview-chat .ant-bubble-start .ant-avatar { background: linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-bg-subtle) 100%); color: var(--color-primary-soft); }
 .interview-chat .ant-bubble-end .ant-bubble-content { border-radius: 16px; max-width: 85%; }
 .history-panel .ant-conversations-item { border-radius: var(--radius-sm); }
-.prompts-wrapper .ant-prompts-item {
-  flex: none; width: calc(33.33% - 8px); min-width: 130px;
-  background: var(--color-bg-elevated);
-  border: 1px solid var(--color-border);
-  border-radius: 12px; transition: all 0.2s;
-}
-.prompts-wrapper .ant-prompts-item:hover {
-  border-color: var(--color-gold);
-  box-shadow: 0 4px 16px rgba(184, 134, 11, 0.08);
-  transform: translateY(-2px);
-}
 
 /* HistoryPage */
 .fs-18 { font-size: 18px; }
@@ -746,10 +927,48 @@ body {
 .header-avatar.ant-avatar { cursor: pointer; background: var(--color-primary-gradient); font-size: 14px; box-shadow: 0 2px 8px rgba(20, 39, 63, 0.2); }
 .menu-user-name { font-weight: 600; }
 .app-tabs.ant-tabs .ant-tabs-nav {
-  justify-content: space-evenly;
+  justify-content: center; /* 不再 space-evenly：允许 tab 自适应 + 换行 */
+  flex-wrap: wrap; /* 窄屏自动换行，不溢出不截断 */
   background: linear-gradient(180deg, #fafbfd 0%, #ffffff 60%);
   margin-bottom: 0;
   border-bottom: 1px solid var(--color-border-light);
+}
+/* 让 AntD 内部的缩容 wrapper 撑满整行 */
+.app-tabs.ant-tabs .ant-tabs-nav-wrap,
+.app-tabs.ant-tabs .ant-tabs-nav-list {
+  width: 100% !important;
+  flex: 1 !important;
+  min-width: 0 !important;
+  gap: 0 !important;
+}
+/* 每个 Tab 弹性缩放：小屏幕收缩文字，大空间舒展 */
+.app-tabs.ant-tabs .ant-tabs-tab {
+  flex: 1 1 calc(25% - 4px) !important; /* 默认 4 列，但允许收缩 */
+  max-width: 100% !important;
+  min-width: 0 !important;
+  text-align: center !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  padding: clamp(6px, 1.5vw, 12px) !important; /* 恢复 Ant Design 默认 padding */
+}
+.app-tabs.ant-tabs .ant-tabs-tab-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important;
+  margin: 0 auto !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* ── 小屏 (600-899px)：split-view 侧边栏缩小 ── */
+@media (min-width: 600px) and (max-width: 899px) {
+  .interview-sidebar {
+    width: 200px !important;
+    min-width: 180px !important;
+    max-width: 220px !important;
+  }
 }
 .app-tabs.ant-tabs .ant-tabs-tab-active .ant-tabs-tab-btn {
   color: var(--color-primary) !important;
@@ -794,7 +1013,7 @@ body {
   transform: translateY(-1px);
 }
 .fu-label .ant-upload-drag-icon { margin: 0; }
-.fu-label .ant-upload-drag-icon .anticon { font-size: 36px; color: var(--color-gold-deep); }
+.fu-label .ant-upload-drag-icon .anticon { font-size: 28px; color: var(--color-gold-deep); }
 .fu-label .ant-upload-text { margin: 0; font-size: 13px; color: var(--color-text-secondary); }
 .fu-label.ant-upload-disabled { cursor: not-allowed; opacity: 0.6; }
 .mb-8 { margin-bottom: 8px; }

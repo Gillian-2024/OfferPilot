@@ -4,24 +4,49 @@ import { Settings, Provider } from '../../types';
 
 const PROVIDERS: { value: Provider; label: string; hint: { baseUrl: string; model: string } }[] = [
   {
-    value: 'openai',
-    label: 'OpenAI（gpt-4o / gpt-4o-mini）',
-    hint: { baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o-mini' },
-  },
-  {
     value: 'claude',
-    label: 'Claude（Anthropic 官方 / 兼容网关）',
-    hint: { baseUrl: 'https://api.anthropic.com', model: 'claude-3-5-haiku-20241022' },
+    label: 'Anthropic（Claude Opus / Sonnet / Haiku）',
+    hint: { baseUrl: 'https://api.anthropic.com', model: '' },
   },
   {
-    value: 'domestic',
-    label: '国内模型（智谱/通义/DeepSeek，OpenAI 兼容协议）',
-    hint: { baseUrl: 'https://open.bigmodel.cn/api/paas/v4', model: 'glm-4-flash' },
+    value: 'openai',
+    label: 'OpenAI（GPT）',
+    hint: { baseUrl: 'https://api.openai.com/v1', model: '' },
   },
   {
-    value: 'gateway',
-    label: '自建 LLM 网关（glm-5.2）',
-    hint: { baseUrl: 'https://llm-gateway.example.com/anthropic', model: 'tencent/glm-5.2' },
+    value: 'google',
+    label: 'Google（Gemini）',
+    hint: { baseUrl: 'https://generativelanguage.googleapis.com/v1beta', model: '' },
+  },
+  {
+    value: 'deepseek',
+    label: '深度求索（DeepSeek）',
+    hint: { baseUrl: 'https://api.deepseek.com', model: '' },
+  },
+  {
+    value: 'tongyi',
+    label: '阿里-通义千问（Qwen）',
+    hint: { baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', model: '' },
+  },
+  {
+    value: 'doubao',
+    label: '字节-豆包（Seed）',
+    hint: { baseUrl: 'https://ark.cn-beijing.volces.com/api/v3', model: '' },
+  },
+  {
+    value: 'moonshot',
+    label: '月之暗面 （Kimi）',
+    hint: { baseUrl: 'https://api.moonshot.cn/v1', model: '' },
+  },
+  {
+    value: 'zhipu',
+    label: '智谱（GLM）',
+    hint: { baseUrl: 'https://open.bigmodel.cn/api/paas/v4', model: '' },
+  },
+  {
+    value: 'minimax',
+    label: 'MiniMax',
+    hint: { baseUrl: 'https://api.minimax.chat/v1', model: '' },
   },
 ];
 
@@ -52,24 +77,21 @@ export default function SettingsPanel({
       <Alert
         type="info"
         showIcon
-        message="双轨制：留空读服务端 .env；填写则覆盖（存 localStorage，随请求透传）"
+        message="API Key 仅存于本机浏览器"
         className="mb-16"
       />
-      <Typography.Paragraph type="secondary" className="fs-13">
-        选定 Provider 后会预填默认 Base URL / Model，可自行修改。API Key 仅存本机浏览器。
-      </Typography.Paragraph>
       <Form form={form} layout="vertical" onFinish={onSave} initialValues={settings}>
-        <Form.Item label="Provider" name="provider">
+        <Form.Item label="Provider（必选）" name="provider">
           <Select options={PROVIDERS.map((p) => ({ value: p.value, label: p.label }))} onChange={onProviderChange} />
         </Form.Item>
-        <Form.Item label="API Key（覆盖服务端 .env）" name="apiKey">
-          <Input.Password placeholder="留空 = 用服务端 .env 配置" autoComplete="off" />
+        <Form.Item label="API Key（必填）" name="apiKey">
+          <Input.Password placeholder="留空 = 用服务端 .env" autoComplete="off" />
         </Form.Item>
-        <Form.Item label="Base URL（覆盖）" name="baseUrl">
-          <Input placeholder="留空 = 用服务端 .env" />
+        <Form.Item label="Base URL（默认）" name="baseUrl">
+          <Input placeholder="可自定义修改" />
         </Form.Item>
-        <Form.Item label="Model（覆盖）" name="model">
-          <Input placeholder="留空 = 用服务端 .env" />
+        <Form.Item label="Model（必填）" name="model">
+          <Input placeholder="必填，如 qwen-plus、glm-4-flash" />
         </Form.Item>
         <Space>
           <Button type="primary" htmlType="submit">

@@ -158,7 +158,7 @@ ${resumeText}`,
       label: '关键词匹配（对照 JD）',
       system: BASE_SYSTEM,
       prompt: `第二步：对照目标 JD 的关键词清单，逐个匹配简历，找 evidence。
-匹配度评分 0-100，依据对照 JD 逐项说明。
+匹配度评分 0-100，依据对照 JD 逐项说明（2-3句话）。
 
 ${jdBaseline}
 
@@ -169,11 +169,12 @@ ${JSON.stringify(prev, null, 2)}`,
     (prev) => ({
       label: '逐模块诊断 + JD 对照 gap 分析',
       system: BASE_SYSTEM,
-      prompt: `第三步：逐模块找问题，并对照 JD 各维度做 gap 分析（这是简历拆解对照 JD 的核心）。
-- requirement_gaps：对照 JD 的硬性要求（学历/经验/技能/行业）、软性素质、筛选优先级 must-have 项，逐项说满足/部分/缺失 + 简历证据 + 缺口
-- module_issues：应届生重点看实习/项目/校园经历 STAR 化，不苛求工作经验
-- differentiator 没有就写「无明显差异化」，不硬编
-- positioning 要对照 JD 岗位定位，看简历定位是否对准
+      prompt: `第三步：逐模块找问题，并对照 JD 各维度做 gap 分析。
+只写真实差距，不要编造：
+- requirement_gaps：硬要求/软性素质/优先级 must-have 项，逐项满足/部分/缺失+证据+缺口（精简到核心条目）
+- module_issues：应届生重点看实习/项目 STAR 化；每条 issue 只需一句话
+- differentiator：最值钱的点，没有就写「无明显差异化」
+- positioning：一句话评价定位是否对准 JD
 
 ${jdBaseline}
 
@@ -184,8 +185,8 @@ ${JSON.stringify(prev, null, 2)}`,
     (prev) => ({
       label: '汇总诊断报告',
       system: BASE_SYSTEM,
-      prompt: `第四步：汇总成最终诊断报告。quick_wins 按 ROI 排序（3-5 条改了立刻见效）。
-保留前几步的关键结论（requirement_gaps、keyword_hits、module_issues 不丢失），让用户一眼看到对照 JD 的全貌。
+      prompt: `第四步：汇总成简洁的诊断报告。quick_wins 按 ROI 排 3-5 条，每条一句说完。
+保留关键结论但不重复前文——用户需要一眼看到全貌，不是长篇大论。
 
 【前面所有结果】
 ${JSON.stringify(prev, null, 2)}`,
