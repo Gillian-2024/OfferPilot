@@ -26,12 +26,13 @@ export default function Layout() {
   const checkSeq = useRef(0);
 
   const { user, isLoggedIn, logout } = useAuth();
-  const { toggleSidebar } = useSidebar();
+  const { toggleSidebar, settingsOpen, authModalOpen, closeSettings, closeAuthModal } = useSidebar();
 
   const handleSave = (s: Settings) => {
     saveSettings(s);
     setSettingsState(s);
     setOpen(false);
+    closeSettings();
   };
 
   // 启动 / 保存设置后探测模型配置（服务端 1-token 最小调用，验证 Key / 网关 / 配额）
@@ -187,8 +188,8 @@ export default function Layout() {
         size="large"
         className="app-tabs"
       />
-      <SettingsPanel open={open} onClose={() => setOpen(false)} settings={settings} onSave={handleSave} />
-      <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
+      <SettingsPanel open={open || settingsOpen} onClose={() => { setOpen(false); closeSettings(); }} settings={settings} onSave={handleSave} />
+      <AuthModal open={authOpen || authModalOpen} onClose={() => { setAuthOpen(false); closeAuthModal(); }} />
       <Sidebar />
     </div>
   );
