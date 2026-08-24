@@ -120,10 +120,15 @@ export default function Layout() {
 
   return (
     <div className="app-shell">
-      {/* ── Top Bar: Sidebar + Header + Tabs ── */}
+      {/* ── Top Bar: Expand trigger + Sidebar + Header + Tabs ── */}
       <div className="top-bar">
         <nav className={`sidebar-nav ${collapsed ? 'collapsed' : ''}`}>
-          <Sidebar />
+          {collapsed && (
+            <div className="expand-trigger" onClick={() => setCollapsed(false)}>
+              <span className="expand-icon">‹</span>
+            </div>
+          )}
+          {!collapsed && <Sidebar />}
         </nav>
         <header className="app-header">
           <div className="app-title">

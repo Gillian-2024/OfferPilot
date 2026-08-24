@@ -221,16 +221,7 @@ export default function Sidebar() {
             </div>
           )}
 
-          {/* Collapsed: compact icon rows for basic config items */}
-          {collapsed && (
-            <>
-              <IdentityRow collapsed={true} />
-              <ModelRow collapsed={true} />
-              <InviteRow collapsed={true} />
-            </>
-          )}
-
-          {/* Section 2: 管理会话 — only in expanded mode */}
+        {/* Section 2: 管理会话 — only in expanded mode */}
           {!collapsed && (
             <div style={{ padding: '0 8px 8px' }}>
               <div className="strip-section-label">管理会话</div>

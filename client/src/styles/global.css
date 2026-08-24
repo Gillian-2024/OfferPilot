@@ -113,6 +113,33 @@ body {
   border-right: none;
 }
 
+/* ── Expand trigger · thin left-edge bar (visible only when collapsed) ── */
+.expand-trigger {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 4px;
+  background: rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease;
+  z-index: 11;
+}
+.expand-trigger:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+.expand-icon {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 10px;
+  letter-spacing: -1px;
+  user-select: none;
+}
+
 /* Strip — internal to sidebar-nav */
 .sidebar-strip {
   display: flex;
@@ -140,6 +167,7 @@ body {
   flex: 1;
   padding: 8px 0;
   overflow-y: auto;
+  overflow-x: hidden;
   scrollbar-width: thin;
 }
 
