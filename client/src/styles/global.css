@@ -78,51 +78,62 @@ body {
 .app-shell {
   min-height: 100vh;
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
 }
 
-/* ── Left Sidebar Nav ── */
+/* ── Top Bar · sidebar + header + tabs in one row ── */
+.top-bar {
+  display: flex;
+  align-items: stretch;
+  background: var(--color-primary);
+  color: rgba(255, 255, 255, 0.88);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+
+/* ── Sidebar Nav · horizontal segment within top bar ── */
 .sidebar-nav {
   width: 240px;
   min-width: 240px;
   max-width: 240px;
-  height: 100vh;
-  background: var(--color-primary);
-  color: rgba(255, 255, 255, 0.88);
+  height: auto;
+  background: inherit;
   display: flex;
-  flex-direction: column;
+  flex-shrink: 0;
+  overflow: hidden;
+  transition: width 0.25s ease, min-width 0.25s ease, max-width 0.25s ease;
   position: relative;
   z-index: 10;
-  transition: width var(--transition-normal), min-width var(--transition-normal), max-width var(--transition-normal);
-  overflow: hidden;
-  flex-shrink: 0;
 }
 
 .sidebar-nav.collapsed {
-  width: 56px;
-  min-width: 56px;
-  max-width: 56px;
+  width: 0;
+  min-width: 0;
+  max-width: 0;
+  border-right: none;
 }
 
+/* Strip — internal to sidebar-nav */
 .sidebar-strip {
   display: flex;
   flex-direction: column;
-  height: 100%;
   width: 100%;
+  flex-shrink: 0;
 }
 
 .strip-header {
   display: flex;
   align-items: center;
-  padding: 12px 12px;
   gap: 8px;
+  padding: 10px 12px;
   cursor: pointer;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   white-space: nowrap;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   flex-shrink: 0;
+  background: transparent !important;
 }
 .strip-header:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.05) !important;
 }
 
 .strip-items {
@@ -130,22 +141,6 @@ body {
   padding: 8px 0;
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
-}
-.strip-items::-webkit-scrollbar { width: 4px; }
-.strip-items::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 2px;
-}
-
-.strip-section-label {
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.5);
-  textTransform: 'uppercase';
-  letter-spacing: 0.5px;
-  margin-bottom: 6px;
-  padding: '0 12px';
-  white-space: nowrap;
 }
 
 .strip-item {
@@ -156,8 +151,6 @@ body {
   cursor: pointer;
   white-space: nowrap;
   transition: background 0.15s;
-  border-radius: 6px;
-  margin: '0 4px';
 }
 .strip-item:hover {
   background: rgba(255, 255, 255, 0.05);
@@ -174,21 +167,35 @@ body {
   font-size: 12px;
   opacity: 1;
   transition: opacity 0.15s;
-  flex: 1;
-  min-width: 0;
+  white-space: nowrap;
 }
 
-.sidebar-nav.collapsed .strip-item-text {
-  opacity: 0;
-  width: 0;
-  overflow: hidden;
-  padding: 0;
-  margin: 0;
+/* collapsed: hide all text elements (width:0 clips anyway, opacity is safety net) */
+.sidebar-nav.collapsed .strip-item-text,
+.sidebar-nav.collapsed .strip-section-label,
+.sidebar-nav.collapsed .strip-footer,
+.sidebar-nav.collapsed .strip-chevron {
+  opacity: 0 !important;
+}
+
+/* Remove bottom border from header when collapsed */
+.sidebar-nav.collapsed .strip-header {
+  border-bottom: none;
+}
+
+.strip-section-label {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 12px 12px 4px;
+  white-space: nowrap;
 }
 
 .strip-chevron {
   font-size: 10px;
-  margin-left: 'auto';
+  color: rgba(255, 255, 255, 0.5);
+  margin-left: auto;
   transition: transform 0.2s;
   flex-shrink: 0;
 }
@@ -203,8 +210,8 @@ body {
   flex-shrink: 0;
 }
 
-/* ── Main Content Area ── */
-.sidebar-main {
+/* ── Main Content Area · fills remaining viewport height ── */
+.main-content {
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;

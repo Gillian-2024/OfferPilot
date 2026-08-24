@@ -22,11 +22,11 @@ export default function Layout() {
   const [authOpen, setAuthOpen] = useState(false);
   const [modelStatus, setModelStatus] = useState<'checking' | 'ok' | 'missing' | 'error'>('checking');
   const [modelError, setModelError] = useState('');
-  const [modelChecked, setModelChecked] = useState(''); // 探测成功时服务端实际生效的 model
+  const [modelChecked, setModelChecked] = useState('');
   const checkSeq = useRef(0);
 
   const { user, isLoggedIn, logout } = useAuth();
-  const { settingsOpen, openSettings, closeSettings, authModalOpen, openAuthModal, closeAuthModal } = useSidebar();
+  const { settingsOpen, openSettings, closeSettings, authModalOpen, openAuthModal, closeAuthModal, collapsed, setCollapsed } = useSidebar();
 
   const handleSave = (s: Settings) => {
     saveSettings(s);
@@ -120,13 +120,11 @@ export default function Layout() {
 
   return (
     <div className="app-shell">
-      {/* ── Left Persistent Sidebar Nav ── */}
-      <nav className="sidebar-nav">
-        <Sidebar />
-      </nav>
-
-      {/* ── Main Content Area ── */}
-      <main className="sidebar-main">
+      {/* ── Top Bar: Sidebar + Header + Tabs ── */}
+      <div className="top-bar">
+        <nav className={`sidebar-nav ${collapsed ? 'collapsed' : ''}`}>
+          <Sidebar />
+        </nav>
         <header className="app-header">
           <div className="app-title">
             <img src="/logo.svg" alt="" className="app-logo" />
@@ -187,7 +185,6 @@ export default function Layout() {
             )}
           </Space>
         </header>
-
         <Tabs
           items={items}
           activeKey={activeKey}
@@ -195,8 +192,10 @@ export default function Layout() {
           size="large"
           className="app-tabs"
         />
+      </div>
 
-        {/* Tab content — rendered conditionally to avoid AntD tab lazy mount issues */}
+      {/* ── Main Content Area ── */}
+      <main className="main-content">
         {activeKey === 'jd' && <JDAnalysis settings={settings} />}
         {activeKey === 'resume' && <ResumeAnalysis settings={settings} onGotoJD={() => setActiveKey('jd')} />}
         {activeKey === 'interview-prep' && <InterviewReview settings={settings} onGotoJD={() => setActiveKey('jd')} viewMode="prep" />}
