@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Drawer, Form, Select, Input, Button, Space, Alert, Typography } from 'antd';
+import { Form, Select, Input, Button, Space, Alert, Typography, Modal } from 'antd';
 import { Settings, Provider } from '../../types';
 
 const PROVIDERS: { value: Provider; label: string; hint: { baseUrl: string; model: string } }[] = [
@@ -73,7 +73,15 @@ export default function SettingsPanel({
   };
 
   return (
-    <Drawer open={open} onClose={onClose} title="模型设置" width={440} destroyOnClose>
+    <Modal
+      open={open}
+      onCancel={onClose}
+      footer={null}
+      width={420}
+      centered
+      destroyOnClose
+      title="模型设置"
+    >
       <Alert
         type="info"
         showIcon
@@ -100,6 +108,6 @@ export default function SettingsPanel({
           <Button onClick={onClose}>取消</Button>
         </Space>
       </Form>
-    </Drawer>
+    </Modal>
   );
 }
