@@ -1,13 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Tabs, Button, Badge, Tooltip, Tag, Dropdown, Avatar, Space } from 'antd';
-import { SettingOutlined, ThunderboltOutlined, FileTextOutlined, RocketOutlined, BookOutlined, UserOutlined, LogoutOutlined, HistoryOutlined, CheckCircleOutlined, CloseCircleOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
+import { SettingOutlined, ThunderboltOutlined, FileTextOutlined, RocketOutlined, BookOutlined, UserOutlined, LogoutOutlined, HistoryOutlined, CheckCircleOutlined, CloseCircleOutlined, ExclamationCircleOutlined, MenuOutlined } from '@ant-design/icons';
 import { getSettings, setSettings as saveSettings } from '../../store/local';
 import { Settings } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
+import { useSidebar } from '../../contexts/SidebarContext';
 import { api } from '../../api/client';
 import SettingsPanel from '../Settings/SettingsPanel';
 import AuthModal from '../Auth/AuthModal';
+import Sidebar from '../Sidebar';
 import JDAnalysis from '../JDAnalysis';
 import ResumeAnalysis from '../ResumeAnalysis';
 import InterviewReview from '../InterviewReview';
@@ -24,6 +26,7 @@ export default function Layout() {
   const checkSeq = useRef(0);
 
   const { user, isLoggedIn, logout } = useAuth();
+  const { toggleSidebar } = useSidebar();
 
   const handleSave = (s: Settings) => {
     saveSettings(s);
@@ -118,6 +121,7 @@ export default function Layout() {
     <div className="app-shell">
       <header className="app-header">
         <div className="app-title">
+          <Button icon={<MenuOutlined />} shape="circle" size="small" onClick={toggleSidebar} style={{ marginRight: 8, padding: 0, border: 'none' }} />
           <img src="/logo.svg" alt="" className="app-logo" />
           OfferPilot 领航员
           <span className="sub">聚焦：AI 策略 PM</span>
@@ -185,6 +189,7 @@ export default function Layout() {
       />
       <SettingsPanel open={open} onClose={() => setOpen(false)} settings={settings} onSave={handleSave} />
       <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
+      <Sidebar />
     </div>
   );
 }
