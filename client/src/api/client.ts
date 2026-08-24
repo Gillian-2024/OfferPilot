@@ -1,4 +1,5 @@
-import { Settings, SSEMessage } from '../types';
+import { Folder, Invite, Project, Settings, SSEMessage } from '../types';
+import { authHeaders as tokenAuthHeaders } from './auth';
 
 // 请求头：双轨制——用户设置面板覆盖时随请求透传，否则后端读 .env
 function authHeaders(s: Settings): Record<string, string> {
@@ -89,5 +90,116 @@ export const api = {
     const res = await fetch(`/api/share/${id}`);
     if (!res.ok) throw new Error('分享不存在或已过期');
     return res.json() as Promise<{ id: string; type: string; title: string; content: string; createdAt: number }>;
+  },
+};
+
+// === Sidebar APIs ===
+// 用户维度资源,走 token 鉴权 header(auth.ts),不走设置面板 header
+export const sidebarApi = {
+  // Projects
+  getProjects: async (folderId?: string) => {
+    const params = folderId ? `?folder_id=${encodeURIComponent(folderId)}` : '';
+    const res = await fetch(`/projects/projects${params}`, { headers: tokenAuthHeaders() });
+    if (!res.ok) throw new Error('获取项目列表失败');
+    return res.json() as Promise<Project[]>;
+  },
+  createProject: async (name: string, folderId?: string) => {
+    const res = await fetch('/projects/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...tokenAuthHeaders() },
+      body: JSON.stringify({ name, folder_id: folderId || null }),
+    });
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      throw new Error(e.error || '创建项目失败');
+    }
+    return res.json() as Promise<Project>;
+  },
+  updateProject: async (id: string, patch: { name?: string; folder_id?: string | null }) => {
+    const res = await fetch(`/projects/projects/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...tokenAuthHeaders() },
+      body: JSON.stringify(patch),
+    });
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      throw new Error(e.error || '更新项目失败');
+    }
+    return res.json() as Promise<Project>;
+  },
+  deleteProject: async (id: string) => {
+    const res = await fetch(`/projects/projects/${id}`, {
+      method: 'DELETE',
+      headers: tokenAuthHeaders(),
+    });
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      throw new Error(e.error || '删除项目失败');
+    }
+    return res.json() as Promise<{ deleted: boolean }>;
+  },
+
+  // Folders
+  getFolders: async () => {
+    const res = await fetch('/projects/folders', { headers: tokenAuthHeaders() });
+    if (!res.ok) throw new Error('获取文件夹列表失败');
+    return res.json() as Promise<Folder[]>;
+  },
+  createFolder: async (name: string) => {
+    const res = await fetch('/projects/folders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...tokenAuthHeaders() },
+      body: JSON.stringify({ name }),
+    });
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      throw new Error(e.error || '创建文件夹失败');
+    }
+    return res.json() as Promise<Folder>;
+  },
+  updateFolder: async (id: string, patch: { name?: string; sort_order?: number }) => {
+    const res = await fetch(`/projects/folders/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...tokenAuthHeaders() },
+      body: JSON.stringify(patch),
+    });
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      throw new Error(e.error || '更新文件夹失败');
+    }
+    return res.json() as Promise<Folder>;
+  },
+  deleteFolder: async (id: string) => {
+    const res = await fetch(`/projects/folders/${id}`, {
+      method: 'DELETE',
+      headers: tokenAuthHeaders(),
+    });
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      throw new Error(e.error || '删除文件夹失败');
+    }
+    return res.json() as Promise<{ deleted: boolean }>;
+  },
+
+  // Invites
+  getMyInvite: async () => {
+    const res = await fetch('/invites/my', { headers: tokenAuthHeaders() });
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      throw new Error(e.error || '获取邀请信息失败');
+    }
+    return res.json() as Promise<Invite>;
+  },
+  updateInviteCode: async (code: string) => {
+    const res = await fetch('/invites/my/code', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...tokenAuthHeaders() },
+      body: JSON.stringify({ code }),
+    });
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      throw new Error(e.error || '更新邀请码失败');
+    }
+    return res.json() as Promise<{ code: string; message: string }>;
   },
 };

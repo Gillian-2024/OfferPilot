@@ -10,6 +10,14 @@ export default defineConfig({
         target: 'http://localhost:8787',
         changeOrigin: true,
       },
+      '/projects': {
+        target: 'http://localhost:8787',
+        changeOrigin: true,
+      },
+      '/invites': {
+        target: 'http://localhost:8787',
+        changeOrigin: true,
+      },
     },
   },
 });

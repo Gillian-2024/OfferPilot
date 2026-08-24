@@ -23,6 +23,31 @@ export interface User {
   createdAt: number;
 }
 
+// Sidebar:文件夹 / 项目 / 邀请码
+export interface Folder {
+  id: string;
+  name: string;
+  user_id?: string; // 创建接口不返回,列表接口返回
+  sort_order: number;
+  created_at: number;
+  project_count?: number;
+}
+export interface Project {
+  id: string;
+  name: string;
+  folder_id: string | null;
+  user_id?: string; // 创建接口不返回,列表接口返回
+  created_at: number;
+  updated_at: number;
+}
+export interface Invite {
+  id: string;
+  code: string;
+  user_id?: string; // GET /invites/my 不返回
+  click_count: number;
+  created_at: number;
+}
+
 // JD 拆解结果
 export interface JDResult {
   job_profile: string;
