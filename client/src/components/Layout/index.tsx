@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Tabs, Button, Badge, Tooltip, Tag, Dropdown, Avatar, Space } from 'antd';
-import { SettingOutlined, ThunderboltOutlined, FileTextOutlined, RocketOutlined, BookOutlined, UserOutlined, LogoutOutlined, HistoryOutlined, CheckCircleOutlined, CloseCircleOutlined, ExclamationCircleOutlined, MenuOutlined } from '@ant-design/icons';
+import { SettingOutlined, ThunderboltOutlined, FileTextOutlined, RocketOutlined, BookOutlined, UserOutlined, LogoutOutlined, HistoryOutlined, CheckCircleOutlined, CloseCircleOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 import { getSettings, setSettings as saveSettings } from '../../store/local';
 import { Settings } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
@@ -26,7 +26,7 @@ export default function Layout() {
   const checkSeq = useRef(0);
 
   const { user, isLoggedIn, logout } = useAuth();
-  const { toggleSidebar, settingsOpen, authModalOpen, closeSettings, closeAuthModal } = useSidebar();
+  const { settingsOpen, openSettings, closeSettings, authModalOpen, openAuthModal, closeAuthModal } = useSidebar();
 
   const handleSave = (s: Settings) => {
     saveSettings(s);
@@ -64,13 +64,13 @@ export default function Layout() {
       color: 'error',
       icon: <CloseCircleOutlined />,
       text: '模型未配置',
-      tip: '尚未配置模型，点击右上角「模型配置」填写 API Key',
+      tip: '尚未配置模型，点击左侧导航栏「🤖 我的模型」填写 API Key',
     },
     error: {
       color: 'warning',
       icon: <ExclamationCircleOutlined />,
       text: '模型配置出错了',
-      tip: `配置无法使用：${modelError}。请检查 API Key / 网关地址 / 配额，点击修改配置`,
+      tip: `配置无法使用：${modelError}。请检查 API Key / 网关地址 / 配额`,
     },
   };
   const statusUI = modelStatus !== 'checking' ? STATUS_UI[modelStatus] : null;
@@ -84,7 +84,7 @@ export default function Layout() {
           职位拆解
         </span>
       ),
-      children: <JDAnalysis settings={settings} />,
+      children: null, // rendered conditionally below
     },
     {
       key: 'resume',
@@ -94,7 +94,7 @@ export default function Layout() {
           简历拆解
         </span>
       ),
-      children: <ResumeAnalysis settings={settings} onGotoJD={() => setActiveKey('jd')} />,
+      children: null,
     },
     {
       key: 'interview-prep',
@@ -104,7 +104,7 @@ export default function Layout() {
           面试准备
         </span>
       ),
-      children: <InterviewReview settings={settings} onGotoJD={() => setActiveKey('jd')} viewMode="prep" />,
+      children: null,
     },
     {
       key: 'interview-review',
@@ -114,83 +114,97 @@ export default function Layout() {
           面试复盘
         </span>
       ),
-      children: <InterviewReview settings={settings} onGotoJD={() => setActiveKey('jd')} viewMode="review" />,
+      children: null,
     },
   ];
 
   return (
     <div className="app-shell">
-      <header className="app-header">
-        <div className="app-title">
-          <Button icon={<MenuOutlined />} shape="circle" size="small" onClick={toggleSidebar} style={{ marginRight: 8, padding: 0, border: 'none' }} />
-          <img src="/logo.svg" alt="" className="app-logo" />
-          OfferPilot 领航员
-          <span className="sub">聚焦：AI 策略 PM</span>
-          {statusUI && (
-            <Tooltip title={statusUI.tip}>
-              <Tag
-                color={statusUI.color}
-                icon={statusUI.icon}
-                bordered={false}
-                className="tag-tight model-status-tag"
+      {/* ── Left Persistent Sidebar Nav ── */}
+      <nav className="sidebar-nav">
+        <Sidebar />
+      </nav>
+
+      {/* ── Main Content Area ── */}
+      <main className="sidebar-main">
+        <header className="app-header">
+          <div className="app-title">
+            <img src="/logo.svg" alt="" className="app-logo" />
+            OfferPilot 领航员
+            <span className="sub">聚焦：AI 策略 PM</span>
+            {statusUI && (
+              <Tooltip title={statusUI.tip}>
+                <Tag
+                  color={statusUI.color}
+                  icon={statusUI.icon}
+                  bordered={false}
+                  className="tag-tight model-status-tag"
+                  onClick={() => setOpen(true)}
+                >
+                  {statusUI.text}
+                </Tag>
+              </Tooltip>
+            )}
+          </div>
+          <Space size={8}>
+            <Tooltip title={modelStatus === 'ok' ? `模型：${modelChecked || settings.model || '默认'}` : '点击配置模型'}>
+              <Button
+                icon={<SettingOutlined />}
                 onClick={() => setOpen(true)}
+                type="text"
               >
-                {statusUI.text}
-              </Tag>
+                模型配置
+                <Badge count={modelStatus === 'missing' || modelStatus === 'error' ? 1 : 0} size="small" offset={[4, -2]} color="var(--color-gold)" />
+              </Button>
             </Tooltip>
-          )}
-        </div>
-        <Space size={8}>
-          <Tooltip title={modelStatus === 'ok' ? `模型：${modelChecked || settings.model || '默认'}` : '点击配置模型'}>
-            <Button
-              icon={<SettingOutlined />}
-              onClick={() => setOpen(true)}
-              type="text"
-            >
-              模型配置
-              <Badge count={modelStatus === 'missing' || modelStatus === 'error' ? 1 : 0} size="small" offset={[4, -2]} color="var(--color-gold)" />
-            </Button>
-          </Tooltip>
-          {isLoggedIn ? (
-            <Dropdown menu={{
-              items: [
-                { key: 'user-info', label: `${user?.nickname || user?.username}`, disabled: true, className: 'menu-user-name' },
-                { type: 'divider' },
-                { key: 'history', icon: <HistoryOutlined />, label: '历史记录', onClick: () => navigate('/history') },
-                { type: 'divider' },
-                { key: 'logout', icon: <LogoutOutlined />, label: '退出登录', onClick: logout },
-              ],
-            }} trigger={['click']}>
-              <Avatar
-                className="header-avatar"
-                size={32}
+            {isLoggedIn ? (
+              <Dropdown menu={{
+                items: [
+                  { key: 'user-info', label: `${user?.nickname || user?.username}`, disabled: true, className: 'menu-user-name' },
+                  { type: 'divider' },
+                  { key: 'history', icon: <HistoryOutlined />, label: '历史记录', onClick: () => navigate('/history') },
+                  { type: 'divider' },
+                  { key: 'logout', icon: <LogoutOutlined />, label: '退出登录', onClick: logout },
+                ],
+              }} trigger={['click']}>
+                <Avatar
+                  className="header-avatar"
+                  size={32}
+                >
+                  {(user?.nickname || user?.username || '?')[0].toUpperCase()}
+                </Avatar>
+              </Dropdown>
+            ) : (
+              <Button
+                type="primary"
+                ghost
+                size="small"
+                icon={<UserOutlined />}
+                onClick={() => setAuthOpen(true)}
               >
-                {(user?.nickname || user?.username || '?')[0].toUpperCase()}
-              </Avatar>
-            </Dropdown>
-          ) : (
-            <Button
-              type="primary"
-              ghost
-              size="small"
-              icon={<UserOutlined />}
-              onClick={() => setAuthOpen(true)}
-            >
-              登录
-            </Button>
-          )}
-        </Space>
-      </header>
-      <Tabs
-        items={items}
-        activeKey={activeKey}
-        onChange={setActiveKey}
-        size="large"
-        className="app-tabs"
-      />
-      <SettingsPanel open={open || settingsOpen} onClose={() => { setOpen(false); closeSettings(); }} settings={settings} onSave={handleSave} />
-      <AuthModal open={authOpen || authModalOpen} onClose={() => { setAuthOpen(false); closeAuthModal(); }} />
-      <Sidebar />
+                登录
+              </Button>
+            )}
+          </Space>
+        </header>
+
+        <Tabs
+          items={items}
+          activeKey={activeKey}
+          onChange={setActiveKey}
+          size="large"
+          className="app-tabs"
+        />
+
+        {/* Tab content — rendered conditionally to avoid AntD tab lazy mount issues */}
+        {activeKey === 'jd' && <JDAnalysis settings={settings} />}
+        {activeKey === 'resume' && <ResumeAnalysis settings={settings} onGotoJD={() => setActiveKey('jd')} />}
+        {activeKey === 'interview-prep' && <InterviewReview settings={settings} onGotoJD={() => setActiveKey('jd')} viewMode="prep" />}
+        {activeKey === 'interview-review' && <InterviewReview settings={settings} onGotoJD={() => setActiveKey('jd')} viewMode="review" />}
+
+        <SettingsPanel open={open || settingsOpen} onClose={() => { setOpen(false); closeSettings(); }} settings={settings} onSave={handleSave} />
+        <AuthModal open={authOpen || authModalOpen} onClose={() => { setAuthOpen(false); closeAuthModal(); }} />
+      </main>
     </div>
   );
 }

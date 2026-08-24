@@ -4,22 +4,31 @@ type ExpandedSection = 'project-history' | null;
 type HistoryTab = 'tree' | 'history';
 
 interface SidebarContextValue {
-  sidebarOpen: boolean;
-  setSidebarOpen: (open: boolean) => void;
+  // Collapse state
+  collapsed: boolean;
+  setCollapsed: (collapsed: boolean) => void;
+
+  // Expanded section (currently only 'project-history')
   expandedSection: ExpandedSection;
   setExpandedSection: (section: ExpandedSection) => void;
+
+  // History tab switching
   historyTab: HistoryTab;
   setHistoryTab: (tab: HistoryTab) => void;
-  toggleSidebar: () => void;
+
+  // Callbacks
   openSettings: () => void;
   closeSettings: () => void;
   settingsOpen: boolean;
+
   openInviteDialog: () => void;
   closeInviteDialog: () => void;
   inviteDialogOpen: boolean;
+
   openAuthModal: () => void;
   closeAuthModal: () => void;
   authModalOpen: boolean;
+
   openNewProject: () => void;
   closeNewProject: () => void;
   newProjectModalOpen: boolean;
@@ -28,7 +37,7 @@ interface SidebarContextValue {
 const SidebarContext = createContext<SidebarContextValue>(null!);
 
 export function SidebarProvider({ children }: { children: ReactNode }) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const [expandedSection, setExpandedSection] = useState<ExpandedSection>(null);
   const [historyTab, setHistoryTab] = useState<HistoryTab>('tree');
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -36,7 +45,6 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [newProjectModalOpen, setNewProjectModalOpen] = useState(false);
 
-  const toggleSidebar = useCallback(() => setSidebarOpen((o) => !o), []);
   const openSettings = useCallback(() => setSettingsOpen(true), []);
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
   const openInviteDialog = useCallback(() => setInviteDialogOpen(true), []);
@@ -48,10 +56,9 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
 
   return (
     <SidebarContext.Provider value={{
-      sidebarOpen, setSidebarOpen,
+      collapsed, setCollapsed,
       expandedSection, setExpandedSection,
       historyTab, setHistoryTab,
-      toggleSidebar,
       settingsOpen, openSettings, closeSettings,
       inviteDialogOpen, openInviteDialog, closeInviteDialog,
       authModalOpen, openAuthModal, closeAuthModal,

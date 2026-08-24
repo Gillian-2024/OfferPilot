@@ -78,7 +78,138 @@ body {
 .app-shell {
   min-height: 100vh;
   display: flex;
+  flex-direction: row;
+}
+
+/* ── Left Sidebar Nav ── */
+.sidebar-nav {
+  width: 240px;
+  min-width: 240px;
+  max-width: 240px;
+  height: 100vh;
+  background: var(--color-primary);
+  color: rgba(255, 255, 255, 0.88);
+  display: flex;
   flex-direction: column;
+  position: relative;
+  z-index: 10;
+  transition: width var(--transition-normal), min-width var(--transition-normal), max-width var(--transition-normal);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.sidebar-nav.collapsed {
+  width: 56px;
+  min-width: 56px;
+  max-width: 56px;
+}
+
+.sidebar-strip {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+}
+
+.strip-header {
+  display: flex;
+  align-items: center;
+  padding: 12px 12px;
+  gap: 8px;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.strip-header:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.strip-items {
+  flex: 1;
+  padding: 8px 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+.strip-items::-webkit-scrollbar { width: 4px; }
+.strip-items::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
+}
+
+.strip-section-label {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
+  textTransform: 'uppercase';
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+  padding: '0 12px';
+  white-space: nowrap;
+}
+
+.strip-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+  border-radius: 6px;
+  margin: '0 4px';
+}
+.strip-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.strip-item-icon {
+  font-size: 18px;
+  width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.strip-item-text {
+  font-size: 12px;
+  opacity: 1;
+  transition: opacity 0.15s;
+  flex: 1;
+  min-width: 0;
+}
+
+.sidebar-nav.collapsed .strip-item-text {
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+  padding: 0;
+  margin: 0;
+}
+
+.strip-chevron {
+  font-size: 10px;
+  margin-left: 'auto';
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+
+.strip-footer {
+  padding: 8px 12px;
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.4);
+  text-align: center;
+  white-space: nowrap;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+/* ── Main Content Area ── */
+.sidebar-main {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow-x: hidden;
 }
 
 /* ── Header · 流体高度 + 字号 ── */
