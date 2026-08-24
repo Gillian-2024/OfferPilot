@@ -17,3 +17,7 @@ server/data/*.db-shm
 *.tsbuildinfo
 client/vite.config.js
 client/vite.config.d.ts
+
+# Playwright 产物
+client/test-results/
+client/playwright-report/
