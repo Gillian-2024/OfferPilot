@@ -45,5 +45,43 @@ export function getDb() {
       ON history(user_id, created_at DESC);
   `);
 
+  // Folders, projects, invites — sidebar shell data model
+  _db.exec(`
+    CREATE TABLE IF NOT EXISTS folders (
+      id         TEXT PRIMARY KEY,
+      name       TEXT NOT NULL DEFAULT '默认',
+      user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS projects (
+      id         TEXT PRIMARY KEY,
+      name       TEXT NOT NULL,
+      folder_id  TEXT REFERENCES folders(id) ON DELETE SET NULL,
+      user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS invites (
+      id          TEXT PRIMARY KEY,
+      code        TEXT UNIQUE NOT NULL,
+      user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      click_count INTEGER NOT NULL DEFAULT 0,
+      created_at  INTEGER NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_projects_user
+      ON projects(user_id);
+    CREATE INDEX IF NOT EXISTS idx_projects_folder
+      ON projects(folder_id);
+    CREATE INDEX IF NOT EXISTS idx_invites_user
+      ON invites(user_id);
+  `);
+
+  // Safe ALTER: ignore if column already exists (idempotent across restarts)
+  try { _db.exec(`ALTER TABLE history ADD COLUMN project_id TEXT REFERENCES projects(id) ON DELETE SET NULL`); } catch {}
+
   return _db;
 }
