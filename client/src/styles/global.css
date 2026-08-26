@@ -74,70 +74,32 @@ body {
   transition: background var(--transition-normal), color var(--transition-normal);
 }
 
-/* ── App Shell ── */
+/* ── App Shell · sidebar left + right column in one horizontal band ── */
 .app-shell {
-  min-height: 100vh;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  height: 100vh;
+  overflow: hidden;
 }
 
-/* ── Top Bar · sidebar + header + tabs in one row ── */
+/* ── Top Bar · full-height row: left sidebar + right column (header+tabs) ── */
 .top-bar {
-  display: flex;
-  align-items: stretch;
-  background: var(--color-primary);
-  color: rgba(255, 255, 255, 0.88);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  flex-shrink: 0;
+  display: none; /* legacy, no longer used in JSX */
 }
 
-/* ── Sidebar Nav · horizontal segment within top bar ── */
+/* ── Sidebar Nav ── */
 .sidebar-nav {
   width: 240px;
   min-width: 240px;
   max-width: 240px;
-  height: auto;
-  background: inherit;
+  height: 100%;
+  background: var(--color-primary);
+  color: rgba(255, 255, 255, 0.88);
   display: flex;
   flex-shrink: 0;
   overflow: hidden;
-  transition: width 0.25s ease, min-width 0.25s ease, max-width 0.25s ease;
   position: relative;
   z-index: 10;
-}
-
-.sidebar-nav.collapsed {
-  width: 0;
-  min-width: 0;
-  max-width: 0;
-  border-right: none;
-}
-
-/* ── Expand trigger · thin left-edge bar (visible only when collapsed) ── */
-.expand-trigger {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 4px;
-  background: rgba(255, 255, 255, 0.12);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.2s ease;
-  z-index: 11;
-}
-.expand-trigger:hover {
-  background: rgba(255, 255, 255, 0.22);
-}
-.expand-icon {
-  writing-mode: vertical-rl;
-  transform: rotate(180deg);
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 10px;
-  letter-spacing: -1px;
-  user-select: none;
 }
 
 /* Strip — internal to sidebar-nav */
@@ -148,19 +110,31 @@ body {
   flex-shrink: 0;
 }
 
-.strip-header {
+.strip-brand {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  cursor: pointer;
-  white-space: nowrap;
+  gap: 10px;
+  padding: 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   flex-shrink: 0;
-  background: transparent !important;
+  white-space: nowrap;
 }
-.strip-header:hover {
-  background: rgba(255, 255, 255, 0.05) !important;
+.strip-brand-text {
+  min-width: 0;
+}
+.strip-brand-text .t {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #fff;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+.strip-brand-text .s {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.55);
+  margin-top: 2px;
+  white-space: nowrap;
 }
 
 .strip-items {
@@ -169,6 +143,8 @@ body {
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-width: thin;
+  display: flex;
+  flex-direction: column;
 }
 
 .strip-item {
@@ -198,19 +174,6 @@ body {
   white-space: nowrap;
 }
 
-/* collapsed: hide all text elements (width:0 clips anyway, opacity is safety net) */
-.sidebar-nav.collapsed .strip-item-text,
-.sidebar-nav.collapsed .strip-section-label,
-.sidebar-nav.collapsed .strip-footer,
-.sidebar-nav.collapsed .strip-chevron {
-  opacity: 0 !important;
-}
-
-/* Remove bottom border from header when collapsed */
-.sidebar-nav.collapsed .strip-header {
-  border-bottom: none;
-}
-
 .strip-section-label {
   font-size: 10px;
   color: rgba(255, 255, 255, 0.5);
@@ -238,25 +201,36 @@ body {
   flex-shrink: 0;
 }
 
-/* ── Main Content Area · fills remaining viewport height ── */
+/* ── Right Column · stacks header + tabs + main content vertically ── */
+.right-side {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--color-bg-elevated); /* 白色背景，不再是透明 */
+  border-left: 1px solid var(--color-border-light); /* 与侧边栏的分隔线 */
+}
+
+/* ── Main Content Area · fills remaining height within right column ── */
 .main-content {
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
   overflow-x: hidden;
+  overflow-y: auto;
 }
 
-/* ── Header · 流体高度 + 字号 ── */
+/* ── Header · 与侧边栏头部对齐 · 50px 固定高度 ── */
 .app-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 clamp(12px, 3vw, 24px);
-  height: clamp(42px, 6vh, 56px);
-  position: sticky;
-  top: 0;
-  z-index: 10;
+  padding: 10px clamp(12px, 3vw, 24px);
+  height: 50px;
+  flex-shrink: 0;
   transition: all var(--transition-normal);
 }
 
@@ -297,18 +271,6 @@ body {
   gap: clamp(4px, 0.8vw, 8px);
 }
 .app-logo { width: clamp(18px, 2.5vw, 22px); height: clamp(18px, 2.5vw, 22px); flex-shrink: 0; }
-.app-title .sub {
-  font-size: clamp(9px, 1.1vw, 12px);
-  font-weight: 400;
-  padding: 2px 8px;
-  border-radius: var(--radius-sm);
-}
-/* Light mode header sub — 白底 + 半透明白 */
-:root:not([data-theme="dark"]) .app-header .app-title .sub {
-  color: rgba(255, 255, 255, 0.72);
-  background: rgba(255, 255, 255, 0.1);
-}
-
 /* 分享按钮：Offer 金描边 */
 .ant-btn.btn-share:not(:disabled) {
   color: var(--color-gold-deep);
@@ -339,7 +301,7 @@ body {
   min-width: 240px;
   max-width: 340px;
   position: sticky;
-  top: 68px;
+  top: 8px;
   max-height: calc(100vh - 72px);
   overflow-y: auto;
   scrollbar-width: thin;
@@ -793,6 +755,9 @@ body {
 .rv-jd-hero-main { min-width: 0; }
 .rv-jd-profile { font-size: 16px; font-weight: 700; line-height: 1.4; margin-top: 4px; }
 .rv-jd-viable-text { font-size: 12px; color: var(--color-text-secondary); margin-top: 4px; }
+/* JD 精要·岗位标识行（对照面板用，单行截断不堆） */
+.rv-brief-id { display: flex; align-items: center; gap: 6px; padding: 2px 0; min-width: 0; }
+.rv-brief-id .rv-brief-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; font-size: 13px; font-weight: 600; }
 .rv-verdict {
   flex-shrink: 0; padding: 5px 14px; border-radius: 999px;
   font-size: 13px; font-weight: 600; white-space: nowrap;
@@ -1031,7 +996,7 @@ a:focus-visible,
 
 .ra-cols { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
 .ra-side {
-  width: 40%; min-width: 300px; position: sticky; top: 72px;
+  width: 40%; min-width: 300px; position: sticky; top: 8px;
   max-height: calc(100vh - 96px); overflow-y: auto; scrollbar-width: thin;
 }
 .ra-main { flex: 1; min-width: 320px; }
@@ -1088,10 +1053,11 @@ a:focus-visible,
 
 /* Layout */
 .mr-4 { margin-right: 4px; }
-.ant-tag.tag-tight { font-size: 10px; line-height: 16px; padding: 0 6px; margin: 0; }
-.ant-tag.model-status-tag { cursor: pointer; }
-.header-avatar.ant-avatar { cursor: pointer; background: var(--color-primary-gradient); font-size: 14px; box-shadow: 0 2px 8px rgba(20, 39, 63, 0.2); }
 .menu-user-name { font-weight: 600; }
+.app-tabs {
+  min-width: 0 !important;
+  flex-shrink: 1 !important;
+}
 .app-tabs.ant-tabs .ant-tabs-nav {
   justify-content: center; /* 不再 space-evenly：允许 tab 自适应 + 换行 */
   flex-wrap: wrap; /* 窄屏自动换行，不溢出不截断 */
@@ -1140,12 +1106,16 @@ a:focus-visible,
   color: var(--color-primary) !important;
   font-weight: 600 !important;
 }
+/* hover 金色点缀：未选中 Tab 悬停时文字转品牌金（与侧边栏金色点缀呼应） */
+.app-tabs.ant-tabs .ant-tabs-tab:not(.ant-tabs-tab-active):hover .ant-tabs-tab-btn {
+  color: var(--color-gold-deep) !important;
+}
 .app-tabs.ant-tabs .ant-tabs-tab-active::after {
-  border-color: var(--color-gold) !important;
+  border-color: var(--color-primary) !important;
   height: 2.5px !important;
 }
 .app-tabs.ant-tabs .ant-tabs-ink-bar {
-  background: var(--color-gold) !important;
+  background: var(--color-primary) !important;
   height: 2.5px !important;
 }
 

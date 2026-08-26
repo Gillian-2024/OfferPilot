@@ -4,10 +4,6 @@ type ExpandedSection = 'project-history' | null;
 type HistoryTab = 'tree' | 'history';
 
 interface SidebarContextValue {
-  // Collapse state
-  collapsed: boolean;
-  setCollapsed: (collapsed: boolean) => void;
-
   // Expanded section (currently only 'project-history')
   expandedSection: ExpandedSection;
   setExpandedSection: (section: ExpandedSection) => void;
@@ -37,7 +33,6 @@ interface SidebarContextValue {
 const SidebarContext = createContext<SidebarContextValue>(null!);
 
 export function SidebarProvider({ children }: { children: ReactNode }) {
-  const [collapsed, setCollapsed] = useState(false);
   const [expandedSection, setExpandedSection] = useState<ExpandedSection>(null);
   const [historyTab, setHistoryTab] = useState<HistoryTab>('tree');
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -56,7 +51,6 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
 
   return (
     <SidebarContext.Provider value={{
-      collapsed, setCollapsed,
       expandedSection, setExpandedSection,
       historyTab, setHistoryTab,
       settingsOpen, openSettings, closeSettings,

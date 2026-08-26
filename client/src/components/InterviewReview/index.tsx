@@ -22,7 +22,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Settings, SSEMessage } from '../../types';
 import FileUpload from '../shared/FileUpload';
 import { getJDProfile, getResumeSummary, getJDKeywords, getJDResult, getHistory, clearHistory } from '../../store/local';
-import { JDResultView } from '../shared/ResultViews';
+import { JDResultBrief } from '../shared/ResultViews';
 
 interface Msg {
   role: 'user' | 'assistant';
@@ -355,7 +355,6 @@ export default function InterviewReview({ settings, onGotoJD, viewMode = 'prep' 
             <>
               {jdResult ? (
                 <Collapse
-                  defaultActiveKey={['jd']}
                   ghost
                   className="sidebar-collapse"
                   items={[
@@ -373,7 +372,7 @@ export default function InterviewReview({ settings, onGotoJD, viewMode = 'prep' 
                           去拆解 <RightOutlined />
                         </Button>
                       ) : null,
-                      children: <JDResultView data={jdResult} />,
+                      children: <JDResultBrief data={jdResult} />,
                     },
                   ]}
                 />

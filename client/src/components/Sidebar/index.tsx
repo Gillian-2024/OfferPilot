@@ -1,14 +1,29 @@
 import { useState } from 'react';
-import { Tooltip } from 'antd';
+import { Tooltip, Dropdown } from 'antd';
+import type { MenuProps } from 'antd';
+import { HistoryOutlined, LogoutOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import { useSidebar } from '../../contexts/SidebarContext';
 import { useAuth } from '../../contexts/AuthContext';
 import InviteDialog from './InviteDialog';
 
+/* ---------- Model status ---------- */
+
+type ModelStatus = 'checking' | 'ok' | 'missing' | 'error';
+
+const modelStatusMeta = (status: ModelStatus, modelChecked: string, modelError: string) => ({
+  ok: { color: '#4ade80', short: '已配置', tip: `模型可用：${modelChecked || '已配置'}` },
+  missing: { color: '#f87171', short: '未配置', tip: '尚未配置模型，点击「🤖 我的模型」填写 API Key' },
+  error: { color: '#fb923c', short: '配置出错', tip: `配置无法使用：${modelError || '未知错误'}` },
+  checking: { color: '#94a3b8', short: '检测中', tip: '正在验证模型配置' },
+}[status]);
+
 /* ---------- Sub-components ---------- */
 
-function IdentityRow({ collapsed }: { collapsed: boolean }) {
-  const { openAuthModal, openSettings } = useSidebar();
-  const { user, isLoggedIn } = useAuth();
+function IdentityRow() {
+  const { openAuthModal } = useSidebar();
+  const { user, isLoggedIn, logout } = useAuth();
+  const navigate = useNavigate();
 
   if (!isLoggedIn) {
     return (
@@ -17,12 +32,10 @@ function IdentityRow({ collapsed }: { collapsed: boolean }) {
           <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#1a2744', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#c9a44c', fontSize: 11, fontWeight: 600 }}>
             ?
           </div>
-          {!collapsed && (
-            <span className="strip-item-text">
-              <div style={{ fontSize: 12, fontWeight: 500 }}>未登录</div>
-              <div style={{ fontSize: 10, color: '#6b7280' }}>点击登录</div>
-            </span>
-          )}
+          <span className="strip-item-text">
+            <div style={{ fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.9)' }}>未登录</div>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>点击登录</div>
+          </span>
         </div>
       </Tooltip>
     );
@@ -30,50 +43,44 @@ function IdentityRow({ collapsed }: { collapsed: boolean }) {
 
   const initial = (isLoggedIn ? (user!.nickname || user!.username || '?') : '?')[0].toUpperCase();
 
+  const menuItems: MenuProps['items'] = [
+    { key: 'user-info', label: `${user?.nickname || user?.username}`, disabled: true, className: 'menu-user-name' },
+    { type: 'divider' },
+    { key: 'history', icon: <HistoryOutlined />, label: '历史记录', onClick: () => navigate('/history') },
+    { type: 'divider' },
+    { key: 'logout', icon: <LogoutOutlined />, label: '退出登录', onClick: logout },
+  ];
+
   return (
     <div style={{ marginBottom: 4 }}>
-      {/* Avatar row */}
-      <Tooltip title={user?.nickname || user?.username} placement="right">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 6 }}>
+      {/* Avatar row → dropdown (user info / history / logout) */}
+      <Dropdown menu={{ items: menuItems }} trigger={['click']} placement="bottomRight">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 6, cursor: 'pointer' }}>
           <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'linear-gradient(135deg, #1a2744, #2d4a7a)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#c9a44c', fontSize: 11, fontWeight: 600, flexShrink: 0 }}>
             {initial}
           </div>
-          {!collapsed && (
-            <span className="strip-item-text" style={{ fontSize: 12, fontWeight: 500 }}>{user!.nickname || user!.username}</span>
-          )}
+          <span className="strip-item-text" style={{ fontSize: 12, fontWeight: 500 }}>{user!.nickname || user!.username}</span>
         </div>
-      </Tooltip>
-      {/* Model status link */}
-      {!collapsed && (
-        <Tooltip title="点击配置模型">
-          <div style={{ fontSize: 10, color: '#059669', cursor: 'pointer', padding: '0 12px', paddingTop: 4 }} onClick={(e) => { e.stopPropagation(); openSettings(); }}>● 模型已配</div>
-        </Tooltip>
-      )}
-      {/* Collapsed: show as a single icon-only row */}
-      {collapsed && (
-        <Tooltip title="点击配置模型">
-          <div className="strip-item" onClick={openSettings} style={{ justifyContent: 'center', padding: '6px 0' }}>
-            <span style={{ fontSize: 10, color: '#059669' }}>●</span>
-          </div>
-        </Tooltip>
-      )}
+      </Dropdown>
     </div>
   );
 }
 
-function ModelRow({ collapsed }: { collapsed: boolean }) {
+function ModelRow({ modelStatus, modelChecked, modelError }: { modelStatus: ModelStatus; modelChecked: string; modelError: string }) {
   const { openSettings } = useSidebar();
+  const s = modelStatusMeta(modelStatus, modelChecked, modelError);
   return (
-    <Tooltip title="我的模型" placement="right">
+    <Tooltip title={s.tip} placement="right">
       <div className="strip-item" onClick={openSettings}>
         <span className="strip-item-icon">🤖</span>
         <span className="strip-item-text">我的模型</span>
+        <span style={{ fontSize: 9, color: s.color, marginLeft: 'auto', paddingRight: 2, whiteSpace: 'nowrap' }}>● {s.short}</span>
       </div>
     </Tooltip>
   );
 }
 
-function InviteRow({ collapsed }: { collapsed: boolean }) {
+function InviteRow() {
   const { openInviteDialog } = useSidebar();
   return (
     <Tooltip title="我的邀请码" placement="right">
@@ -126,7 +133,7 @@ function ExpandedArea() {
   const show = expandedSection === 'project-history';
 
   return (
-    <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', flex: 1, overflow: 'hidden', maxHeight: show ? 380 : 0, transition: 'max-height 0.3s ease', overflowY: 'auto' }}>
+    <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden', maxHeight: show ? 380 : 0, transition: 'max-height 0.3s ease', overflowY: 'auto' }}>
       {!show && <div />} {/* prevent layout shift */}
       {show && (
         <>
@@ -184,61 +191,47 @@ function ExpandedArea() {
 
 /* ---------- Main Sidebar Component ---------- */
 
-export default function Sidebar() {
-  const { collapsed, setCollapsed, expandedSection, setExpandedSection, inviteDialogOpen, closeInviteDialog, historyTab, setHistoryTab } = useSidebar();
+export default function Sidebar({ modelStatus, modelChecked, modelError }: { modelStatus: ModelStatus; modelChecked: string; modelError: string }) {
+  const { expandedSection, setExpandedSection, inviteDialogOpen, closeInviteDialog, historyTab, setHistoryTab } = useSidebar();
 
   return (
     <>
-      <div className={`sidebar-strip ${collapsed ? 'collapsed' : ''}`}>
-        {/* Header — logo + brand name; click to collapse */}
-        {!collapsed && (
-          <div className="strip-header" onClick={() => setCollapsed(true)}>
-            <div style={{ width: 28, height: 28, background: 'linear-gradient(135deg, #1a2744, #2d4a7a)', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#c9a44c', fontWeight: 800, fontSize: 11, flexShrink: 0 }}>OP</div>
-            <span style={{ fontWeight: 600, fontSize: 14 }}>OfferPilot</span>
+      <div className="sidebar-strip">
+        {/* Brand */}
+        <div className="strip-brand">
+          <img src="/logo.svg" alt="" className="app-logo" style={{ width: 26, height: 26 }} />
+          <div className="strip-brand-text">
+            <div className="t">OfferPilot 领航员</div>
+            <div className="s">聚焦：AI 策略 PM</div>
           </div>
-        )}
-        {/* Collapsed: just OP logo as expand trigger */}
-        {collapsed && (
-          <Tooltip title="展开导航" placement="right">
-            <div className="strip-header" onClick={() => setCollapsed(false)}>
-              <div style={{ width: 32, height: 32, background: 'linear-gradient(135deg, #1a2744, #2d4a7a)', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#c9a44c', fontWeight: 800, fontSize: 11 }}>OP</div>
-            </div>
-          </Tooltip>
-        )}
-
-        {/* Items area */}
-        <div className="strip-items">
-          {/* Section 1: 基础配置 */}
-          {!collapsed && (
-            <div style={{ padding: '16px 8px 8px' }}>
-              <div className="strip-section-label">基础配置</div>
-              <div style={{ padding: '0 4px' }}>
-                <IdentityRow collapsed={collapsed} />
-                <ModelRow collapsed={collapsed} />
-                <InviteRow collapsed={collapsed} />
-                <AdvancedFeatureRow />
-              </div>
-            </div>
-          )}
-
-        {/* Section 2: 管理会话 — only in expanded mode */}
-          {!collapsed && (
-            <div style={{ padding: '0 8px 8px' }}>
-              <div className="strip-section-label">管理会话</div>
-              <div style={{ padding: '0 4px' }}>
-                <SessionsNav />
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* Expanded area — only shown when expanded */}
-        {!collapsed && <ExpandedArea />}
+        {/* Nav Items */}
+        <div className="strip-items">
+          {/* Section 1: 基础配置 */}
+          <div style={{ padding: '16px 8px 8px', flexShrink: 0 }}>
+            <div className="strip-section-label">基础配置</div>
+            <div style={{ padding: '0 4px' }}>
+              <IdentityRow />
+              <ModelRow modelStatus={modelStatus} modelChecked={modelChecked} modelError={modelError} />
+              <InviteRow />
+              <AdvancedFeatureRow />
+            </div>
+          </div>
 
-        {/* Footer — only when expanded */}
-        {!collapsed && (
-          <div className="strip-footer">v1.0.0 · Gillian-2024/OfferPilot</div>
-        )}
+          {/* Section 2: 管理会话 */}
+          <div style={{ marginTop: 'auto', padding: '0 8px 8px', flexShrink: 0 }}>
+            <div className="strip-section-label">管理会话</div>
+            <div style={{ padding: '0 4px' }}>
+              <SessionsNav />
+              {/* 展开面板紧贴菜单项下方，向下手风琴展开 */}
+              <ExpandedArea />
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="strip-footer">v1.0.0 · Gillian-2024/OfferPilot</div>
       </div>
 
       {/* Trigger modals/dialogs */}

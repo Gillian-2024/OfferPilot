@@ -151,6 +151,45 @@ export function JDResultView({ data }: { data: JDResult | null }) {
   );
 }
 
+/* ────────────────────── JD 精要视图（对照场景专用）────────────────────── */
+
+/* 对照面板（简历拆解 / 面试准备 / 面试复盘 侧栏）专用：只取工作时需要看的锚点 ——
+   岗位画像 + 硬性要求 + 筛选优先级 + 关键词。完整报告不在此重复，联动去 JD 拆解 Tab。 */
+export function JDResultBrief({ data }: { data: JDResult | null }) {
+  if (!data) return <Empty description="暂无拆解结果" />;
+  return (
+    <div className="rv-stack">
+      {/* 岗位标识行：单行截断，只回答"对照的是哪个岗" */}
+      <div className="rv-brief-id">
+        <span className="rv-chip rv-chip--navy" style={{ flexShrink: 0 }}>{data.job_type}</span>
+        <span className="rv-brief-name">{data.job_profile}</span>
+      </div>
+
+      <Card size="small" className="rv-card" title={rvTitle('硬性要求')}>
+        <div className="rv-def-list">
+          <div className="rv-def-row"><span className="rv-def-label">学历</span><span>{data.hard_requirements?.education || '—'}</span></div>
+          <div className="rv-def-row"><span className="rv-def-label">经验</span><span>{data.hard_requirements?.experience || '—'}</span></div>
+          <div className="rv-def-row"><span className="rv-def-label">必备技能</span><span className="rv-chips">{(data.hard_requirements?.must_skills || []).map((s) => <span key={s} className="rv-chip rv-chip--navy">{s}</span>)}</span></div>
+        </div>
+      </Card>
+
+      <Card size="small" className="rv-card" title={rvTitle('筛选优先级')}>
+        {(data.screening_priority || []).map((p, i) => (
+          <div key={i} className="rv-prio-row">
+            <span className={`rv-chip ${tierKind(p.tier) === 'must' ? 'rv-chip--must' : 'rv-chip--neutral'}`}>{p.tier}</span>
+            <span className="rv-prio-item">{p.item}</span>
+          </div>
+        ))}
+        {data.screening_priority?.length === 0 && <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="无优先级数据" />}
+      </Card>
+
+      <Card size="small" className="rv-card" title={rvTitle('关键词')}>
+        <div className="rv-chips">{(data.keyword_list || []).map((k) => <span key={k} className="rv-chip rv-chip--navy">{k}</span>)}</div>
+      </Card>
+    </div>
+  );
+}
+
 /* ────────────────────────── 简历拆解视图 ────────────────────────── */
 
 const gapKind = (status: string) => status.includes('缺失') ? 'miss' : status.includes('部分') ? 'part' : 'ok';

@@ -15,7 +15,7 @@ import {
 import XMarkdown from '@ant-design/x-markdown';
 import FileUpload from '../shared/FileUpload';
 import Steps from '../shared/HorizontalSteps';
-import { ResumeResultView, JDResultView } from '../shared/ResultViews';
+import { ResumeResultView, JDResultBrief } from '../shared/ResultViews';
 import { api } from '../../api/client';
 import { Settings, ResumeResult, SSEMessage } from '../../types';
 import { getJDResult, setResumeSummary, addHistorySynced } from '../../store/local';
@@ -140,7 +140,6 @@ export default function ResumeAnalysis({ settings, onGotoJD }: { settings: Setti
         <div className="ra-side">
           {hasBaseline ? (
             <Collapse
-              defaultActiveKey={['jd']}
               ghost
               className="sidebar-collapse"
               items={[
@@ -151,7 +150,6 @@ export default function ResumeAnalysis({ settings, onGotoJD }: { settings: Setti
                       <ThunderboltOutlined className="icon-primary" />
                       对照 JD（只读）
                       <Tag color="success" bordered={false}>已联动</Tag>
-                      <Typography.Text strong className="fs-13">{jdResult.job_profile}</Typography.Text>
                     </Space>
                   ),
                   extra: onGotoJD ? (
@@ -159,7 +157,7 @@ export default function ResumeAnalysis({ settings, onGotoJD }: { settings: Setti
                       去拆解 <RightOutlined />
                     </Button>
                   ) : null,
-                  children: <JDResultView data={jdResult} />,
+                  children: <JDResultBrief data={jdResult} />,
                 },
               ]}
             />
