@@ -557,11 +557,23 @@ body {
   box-shadow: 0 2px 8px rgba(20, 39, 63, 0.18) !important;
 }
 
-/* ── 快捷 Prompts — 3-column grid，手写按钮绕过 AntD X Flex 布局 ── */
+/* ── 快捷 Prompts — 按 MECE 分组渲染，组标题 + 组内卡网格 ── */
 .card-prompts {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.card-prompt-group-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  margin-bottom: 8px;
+  letter-spacing: 0.05em;
+}
+.card-prompt-group-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: clamp(4px, 1vw, 8px);
 }
 .card-prompts button {
   padding: 10px 12px;
@@ -851,12 +863,7 @@ body {
   display: inline-flex; align-items: center; justify-content: center;
 }
 
-/* ── Prompts Grid · auto-fit 流体列数，有空间自动 3 列、挤了自然缩到 2/1 ── */
-.card-prompts {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: clamp(4px, 1vw, 8px);
-}
+/* ── Prompts Group Grid · auto-fit 流体列数（组内卡网格，主定义在上） ── */
 .card-prompts button {
   padding: clamp(6px, 1.5vw, 10px) clamp(6px, 1.5vw, 12px);
   border-radius: var(--radius-md);

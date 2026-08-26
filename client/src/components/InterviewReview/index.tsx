@@ -12,6 +12,7 @@ import {
   HistoryOutlined, SendOutlined, ThunderboltOutlined,
   CheckCircleOutlined, FireOutlined, BookOutlined,
   AudioMutedOutlined, InboxOutlined,
+  ProfileOutlined, ExclamationCircleOutlined, ShopOutlined, CrownOutlined, TeamOutlined, MailOutlined,
 } from '@ant-design/icons';
 import { Bubble, Sender, Prompts, Actions, Suggestion, Conversations } from '@ant-design/x';
 import type { ActionItem } from '@ant-design/x/es/actions/interface';
@@ -289,23 +290,71 @@ export default function InterviewReview({ settings, onGotoJD, viewMode = 'prep' 
   };
 
   // Prompts — 按模式切换，更丰富的图标和描述
-  const reviewPrompts = [
-    { key: 'simulate', icon: <FireOutlined className="icon-primary" />, label: '模拟追问', description: '面试官还会问什么' },
-    { key: 'summary', icon: <BookOutlined className="icon-primary" />, label: '总结表现', description: '亮点与不足' },
-    { key: 'failure', icon: <AimOutlined className="icon-primary" />, label: '失败归因', description: '可能的顾虑' },
-    { key: 'deep', icon: <RocketOutlined className="icon-primary" />, label: '关键深挖', description: '最有深度的题' },
-    { key: 'satisfaction', icon: <SmileOutlined className="icon-primary" />, label: '判断满意度', description: '面试官信号分析' },
+  // review 快捷卡按「复盘后的增值动作」3 组切（MECE）：整体表现/预判深挖/面试官视角
+  const reviewGroups = [
+    {
+      title: '整体表现',
+      prompts: [
+        { key: 'summary', icon: <BookOutlined className="icon-primary" />, label: '总结表现', description: '亮点与不足' },
+        { key: 'failure', icon: <AimOutlined className="icon-primary" />, label: '失败归因', description: '可能的顾虑' },
+      ],
+    },
+    {
+      title: '预判与深挖',
+      prompts: [
+        { key: 'simulate', icon: <FireOutlined className="icon-primary" />, label: '模拟追问', description: '面试官还会问什么' },
+        { key: 'deep', icon: <RocketOutlined className="icon-primary" />, label: '关键深挖', description: '最有深度的题' },
+      ],
+    },
+    {
+      title: '面试官视角',
+      prompts: [
+        { key: 'satisfaction', icon: <SmileOutlined className="icon-primary" />, label: '判断满意度', description: '面试官信号分析' },
+      ],
+    },
   ];
 
-  const prepPrompts = [
-    { key: 'intro', icon: <UserOutlined className="icon-primary" />, label: '自我介绍', description: '三段式框架' },
-    { key: 'predict', icon: <RocketOutlined className="icon-primary" />, label: '预测面试题', description: '含参考答案框架' },
-    { key: 'company', icon: <AimOutlined className="icon-primary" />, label: '公司定向', description: '定向准备' },
-    { key: 'concept', icon: <SwapOutlined className="icon-primary" />, label: '概念辨析', description: '对比题练习' },
-    { key: 'scenario', icon: <QuestionCircleOutlined className="icon-primary" />, label: '场景分析', description: '产品sense' },
-    { key: 'ask-back', icon: <MessageOutlined className="icon-primary" />, label: '反问技巧', description: '景别法' },
-    { key: 'hr', icon: <SafetyCertificateOutlined className="icon-primary" />, label: 'HR面准备', description: '六维度覆盖' },
-    { key: 'salary', icon: <DollarOutlined className="icon-primary" />, label: '薪资谈判', description: '策略话术' },
+  // prep 快捷卡按「面试官会怎么考你」5 组正交切（MECE）：整场/环节/题型/轮次/Offer
+  const prepGroups = [
+    {
+      title: '整场准备',
+      prompts: [
+        { key: 'predict', icon: <RocketOutlined className="icon-primary" />, label: '预测面试题', description: '含参考答案框架' },
+        { key: 'company', icon: <AimOutlined className="icon-primary" />, label: '公司定向', description: '定向准备' },
+      ],
+    },
+    {
+      title: '环节准备',
+      prompts: [
+        { key: 'intro', icon: <UserOutlined className="icon-primary" />, label: '自我介绍', description: '三段式框架' },
+        { key: 'ask-back', icon: <MessageOutlined className="icon-primary" />, label: '反问技巧', description: '景别法' },
+      ],
+    },
+    {
+      title: '题型攻坚',
+      prompts: [
+        { key: 'concept', icon: <SwapOutlined className="icon-primary" />, label: '概念辨析', description: '对比题练习' },
+        { key: 'scenario', icon: <QuestionCircleOutlined className="icon-primary" />, label: '场景分析', description: '产品sense' },
+        { key: 'behavior', icon: <ProfileOutlined className="icon-primary" />, label: '行为经历题', description: 'STAR框架' },
+        { key: 'pressure', icon: <ExclamationCircleOutlined className="icon-primary" />, label: '压力/质疑题', description: '接住质疑' },
+      ],
+    },
+    {
+      title: '轮次定向',
+      prompts: [
+        { key: 'business', icon: <ShopOutlined className="icon-primary" />, label: '业务面', description: '项目深挖' },
+        { key: 'executive', icon: <CrownOutlined className="icon-primary" />, label: '高管面', description: '全局思维' },
+        { key: 'hr', icon: <SafetyCertificateOutlined className="icon-primary" />, label: 'HR面', description: '六维度覆盖' },
+        { key: 'group', icon: <TeamOutlined className="icon-primary" />, label: '群面', description: '无领导小组' },
+      ],
+    },
+    {
+      title: 'Offer 之后',
+      prompts: [
+        { key: 'salary', icon: <DollarOutlined className="icon-primary" />, label: '薪资谈判', description: '策略话术' },
+        { key: 'follow-up', icon: <MailOutlined className="icon-primary" />, label: '面试后跟进', description: '感谢信/被拒' },
+      ],
+    },
   ];
 
   const handlePromptClick = (info: { data: { key: string } }) => {
@@ -324,6 +373,12 @@ export default function InterviewReview({ settings, onGotoJD, viewMode = 'prep' 
       intro: '我想准备面试自我介绍，请帮我基于岗位画像和简历设计一个 1 分钟版本的自我介绍框架，按三段式（你是谁/为什么胜任/为什么选这家）组织。',
       hr: '我想准备 HR 面，请帮我预测 HR 最可能问的问题（覆盖动机/自我认知/稳定性/薪资/压力五类），给出回答框架和避坑指南。',
       salary: '我想了解校招薪资谈判策略，请教我谈薪的核心原则、话术模板和 offer 比较方法。',
+      behavior: '我想练习行为经历题（讲一个你…类问题），请出 3-5 个和这个岗位相关的高频行为题，每题给出 STAR 回答框架和简历锚点。',
+      pressure: '我想准备压力面和被质疑场景的应对，请先讲接住质疑的思路，再出 3 个常见的压力/质疑场景题让我演练。',
+      business: '我想准备业务面（业务负责人/Mentor 轮），请预测可能的问题并给回答框架，重点是项目深挖和场景迁移。',
+      executive: '我想准备高管面（总监/Boss 轮），请预测可能的问题并给回答框架，重点是宏观视野和战略判断。',
+      group: '我想准备群面（无领导小组讨论），请教我角色分工、四阶段流程和高分行为，并出一道真题示范。',
+      'follow-up': '面试结束后应该怎么跟进？包括感谢信、等待结果、被拒后怎么办。',
     };
     const text = promptMap[key];
     if (text) send(text);
@@ -495,19 +550,26 @@ export default function InterviewReview({ settings, onGotoJD, viewMode = 'prep' 
               <Bubble.List autoScroll roles={roles} items={bubbleItems} />
             )}
 
-            {/* 快捷 Prompts — 对话后的功能选项（8 宫格） */}
+            {/* 快捷 Prompts — 按组渲染（MECE 分组，组标题 + 组内卡网格） */}
             <div className="card-prompts">
-              {(viewMode === 'review' ? reviewPrompts : prepPrompts).map((p) => (
-                <button
-                  key={p.key}
-                  className="card-prompt-card"
-                  onClick={() => handlePromptClick({ data: { key: p.key } })}
-                  type="button"
-                >
-                  <span className="card-prompt-icon">{p.icon}</span>
-                  <span className="card-prompt-label">{p.label}</span>
-                  <span className="card-prompt-desc">{p.description}</span>
-                </button>
+              {(viewMode === 'review' ? reviewGroups : prepGroups).map((g) => (
+                <div key={g.title} className="card-prompt-group">
+                  <div className="card-prompt-group-title">{g.title}</div>
+                  <div className="card-prompt-group-grid">
+                    {g.prompts.map((p) => (
+                      <button
+                        key={p.key}
+                        className="card-prompt-card"
+                        onClick={() => handlePromptClick({ data: { key: p.key } })}
+                        type="button"
+                      >
+                        <span className="card-prompt-icon">{p.icon}</span>
+                        <span className="card-prompt-label">{p.label}</span>
+                        <span className="card-prompt-desc">{p.description}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
 
