@@ -494,7 +494,7 @@ export default function InterviewReview({ settings, onGotoJD, viewMode = 'prep' 
   const showWrapUp = viewMode === 'review' && !!lastUserMsg && /(结束了|没了|就这些|复盘完|差不多了|先这样|就这样)/.test(lastUserMsg.content);
 
   // Prompts — 按模式切换，更丰富的图标和描述
-  // review 快捷卡按「复盘后的增值动作」3 组切（MECE）：整体表现/预判深挖/面试官视角
+  // review 快捷卡按「复盘后的增值动作」4 组切（MECE）：整体表现/预判深挖/面试官视角/Offer
   const reviewGroups = [
     {
       title: '整体表现',
@@ -516,9 +516,16 @@ export default function InterviewReview({ settings, onGotoJD, viewMode = 'prep' 
         { key: 'satisfaction', icon: <SmileOutlined className="icon-primary" />, label: '判断满意度', description: '面试官信号分析' },
       ],
     },
+    {
+      title: 'Offer 之后',
+      prompts: [
+        { key: 'salary', icon: <DollarOutlined className="icon-primary" />, label: '薪资谈判', description: '策略话术' },
+        { key: 'follow-up', icon: <MailOutlined className="icon-primary" />, label: '面试后跟进', description: '感谢信/被拒' },
+      ],
+    },
   ];
 
-  // prep 快捷卡按「面试官会怎么考你」5 组正交切（MECE）：整场/环节/题型/轮次/Offer
+  // prep 快捷卡按「面试官会怎么考你」4 组正交切（MECE）：整场/环节/题型/轮次
   const prepGroups = [
     {
       title: '整场准备',
@@ -550,13 +557,6 @@ export default function InterviewReview({ settings, onGotoJD, viewMode = 'prep' 
         { key: 'executive', icon: <CrownOutlined className="icon-primary" />, label: '高管面', description: '全局思维' },
         { key: 'hr', icon: <SafetyCertificateOutlined className="icon-primary" />, label: 'HR面', description: '六维度覆盖' },
         { key: 'group', icon: <TeamOutlined className="icon-primary" />, label: '群面', description: '无领导小组' },
-      ],
-    },
-    {
-      title: 'Offer 之后',
-      prompts: [
-        { key: 'salary', icon: <DollarOutlined className="icon-primary" />, label: '薪资谈判', description: '策略话术' },
-        { key: 'follow-up', icon: <MailOutlined className="icon-primary" />, label: '面试后跟进', description: '感谢信/被拒' },
       ],
     },
   ];
@@ -812,6 +812,22 @@ export default function InterviewReview({ settings, onGotoJD, viewMode = 'prep' 
             </Space>
           </div>
 
+          {/* 一键分享生成的链接 — 紧跟顶部栏，点按钮同屏可见，不沉底 */}
+          {shareUrl && (
+            <Alert
+              type="success"
+              showIcon
+              icon={<LinkOutlined />}
+              closable
+              className="ir-share-alert"
+              message={
+                <a href={shareUrl} target="_blank" rel="noreferrer">
+                  {shareUrl}
+                </a>
+              }
+            />
+          )}
+
           {/* 历史面板（可收起） */}
           {showHistory && historyItems.length > 0 && (
             <Card size="small" className="history-panel" title="历史会话" extra={
@@ -938,20 +954,6 @@ export default function InterviewReview({ settings, onGotoJD, viewMode = 'prep' 
             </Suggestion>
           </Card>
 
-          {shareUrl && (
-            <Alert
-              type="success"
-              showIcon
-              icon={<LinkOutlined />}
-              closable
-              className="ir-share-alert"
-              message={
-                <a href={shareUrl} target="_blank" rel="noreferrer">
-                  {shareUrl}
-                </a>
-              }
-            />
-          )}
         </main>
       </div>
 
