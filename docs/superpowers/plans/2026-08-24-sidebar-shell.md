@@ -77,7 +77,7 @@ try { _db.exec(`ALTER TABLE history ADD COLUMN project_id TEXT REFERENCES projec
 
 - [ ] **Step 2: Run server startup to verify no SQL errors**
 
-Run: `cd /Users/gillian/campus-job-coach/server && node src/index.js`
+Run: `cd server && node src/index.js`
 
 Expected output: `OfferPilot 领航员 server: http://localhost:8787` + provider default line. No SQL exceptions in console.
 
@@ -190,7 +190,7 @@ app.use('/api/invites', invitesRouter);
 
 - [ ] **Step 3: Verify server starts and route loads**
 
-Run: `curl -s http://localhost:8787/api/invites/my -H "Authorization: Bearer $(cat /Users/gillian/campus-job-coach/server/.env | grep JWT_SECRET | head -1 || echo test)"` 
+Run: `curl -s http://localhost:8787/api/invites/my -H "Authorization: Bearer $(echo $JWT_SECRET)"` 
 
 Expected: `{ error: '请先登录' }` (401 — correct, because we don't have a valid token without logging in first).
 
@@ -610,7 +610,7 @@ interface Invite { id: string; code: string; user_id: string; click_count: numbe
 
 - [ ] **Step 2: Verify TypeScript compiles cleanly**
 
-Run: `cd /Users/gillian/campus-job-coach/client && npx tsc --noEmit`
+Run: `cd client && npx tsc --noEmit`
 
 Expected: no errors. If there are errors, fix them inline.
 
@@ -733,7 +733,7 @@ export default function App() {
 
 - [ ] **Step 3: Verify build**
 
-Run: `cd /Users/gillian/campus-job-coach/client && npx vite build`
+Run: `cd client && npx vite build`
 
 Expected: build succeeds with no errors.
 
@@ -1165,7 +1165,7 @@ Actually the simplest safe approach: keep ALL existing Layout state + add Sideba
 
 - [ ] **Step 4: Verify build**
 
-Run: `cd /Users/gillian/campus-job-coach/client && npx vite build`
+Run: `cd client && npx vite build`
 
 Expected: build succeeds.
 
@@ -1311,14 +1311,14 @@ test.describe('Sidebar App Shell', () => {
 
 Check if `@playwright/test` is in client/devDependencies. If not:
 ```bash
-cd /Users/gillian/campus-job-coach/client && npm install -D @playwright/test
+cd client && npm install -D @playwright/test
 npx playwright install chromium
 ```
 
 - [ ] **Step 3: Run tests (expect some failures until server is up)**
 
 ```bash
-cd /Users/gillian/campus-job-coach/client && npx playwright test
+cd client && npx playwright test
 ```
 
 Expected: At minimum the structure verifies — selectors find elements. Some may fail due to CSS class naming differences (Ant Design vs our custom styling). Adjust selectors as needed.
