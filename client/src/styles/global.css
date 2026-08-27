@@ -999,6 +999,8 @@ a:focus-visible,
 .ra-share-alert { margin-bottom: 16px; border-radius: var(--radius-md); }
 .mb-16 { margin-bottom: 16px; }
 .ml-4 { margin-left: 4px; }
+.goto-resume { color: var(--color-primary-text); font-weight: 500; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.goto-resume:hover { color: var(--color-primary-soft); }
 
 .fs-12 { font-size: 12px; }
 .fs-13 { font-size: 13px; }

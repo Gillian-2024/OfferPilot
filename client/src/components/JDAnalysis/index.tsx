@@ -19,7 +19,7 @@ import { getActiveJob, getJDResult, setJDResult, addHistorySynced } from '../../
 import { exportNodeToPdf, reportFilename } from '../../utils/exportPdf';
 import { useSidebar } from '../../contexts/SidebarContext';
 
-export default function JDAnalysis({ settings }: { settings: Settings }) {
+export default function JDAnalysis({ settings, onGotoResume }: { settings: Settings; onGotoResume?: () => void }) {
   const { activeJobId, refreshJobs } = useSidebar();
   const [text, setText] = useState('');
   const [result, setResult] = useState<JDResult | null>(() => getJDResult());
@@ -182,8 +182,11 @@ export default function JDAnalysis({ settings }: { settings: Settings }) {
           className="ra-share-alert"
           message={
             <span>
-              已存入岗位「{getActiveJob()?.name || '未命名岗位'}」的上下文，切换到 <Tag color="processing" bordered={false}>简历拆解</Tag> Tab 将自动联动岗位画像 + 关键词
-              <ArrowRightOutlined className="ml-4" />
+              已存入岗位「{getActiveJob()?.name || '未命名岗位'}」的上下文，切换到{' '}
+              <a role="link" className="goto-resume" onClick={() => onGotoResume?.()}>
+                简历拆解 <ArrowRightOutlined className="ml-4" />
+              </a>{' '}
+              Tab 将自动联动岗位画像 + 关键词
             </span>
           }
         />

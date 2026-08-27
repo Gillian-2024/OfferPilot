@@ -103,7 +103,7 @@ export default function Layout() {
           className="app-tabs"
         />
         <main className="main-content">
-          {activeKey === 'jd' && <JDAnalysis settings={settings} />}
+          {activeKey === 'jd' && <JDAnalysis settings={settings} onGotoResume={() => setActiveKey('resume')} />}
           {activeKey === 'resume' && <ResumeAnalysis settings={settings} onGotoJD={() => setActiveKey('jd')} />}
           {activeKey === 'interview-prep' && <InterviewReview settings={settings} onGotoJD={() => setActiveKey('jd')} viewMode="prep" />}
           {activeKey === 'interview-review' && <InterviewReview settings={settings} onGotoJD={() => setActiveKey('jd')} viewMode="review" />}
