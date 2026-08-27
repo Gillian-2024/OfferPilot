@@ -74,11 +74,12 @@ export async function fetchHistory(type?: string): Promise<HistoryItem[]> {
   return data.items;
 }
 
-export async function saveHistoryItem(item: { type: string; title: string; data: any; provider?: string; model?: string }): Promise<{ id: string }> {
+export async function saveHistoryItem(item: { type: string; title: string; data: any; provider?: string; model?: string; jobId?: string }): Promise<{ id: string }> {
   const res = await fetch('/api/history', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
-    body: JSON.stringify(item),
+    // 客户端 jobId 与服务端 project_id 同语义：历史记录按岗位（项目）归属
+    body: JSON.stringify({ ...item, project_id: item.jobId }),
   });
   if (!res.ok) throw new Error('保存失败');
   return res.json();

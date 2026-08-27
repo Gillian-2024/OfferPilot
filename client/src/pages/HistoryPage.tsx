@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Card, List, Tag, Button, Empty, Space, Typography, Modal, message, Spin, Segmented } from 'antd';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Card, List, Tag, Button, Empty, Space, Typography, Modal, message, Spin, Segmented, Alert } from 'antd';
 import {
   ArrowLeftOutlined, DeleteOutlined, ClockCircleOutlined,
   ThunderboltOutlined, FileProtectOutlined, MessageOutlined,
 } from '@ant-design/icons';
 import { fetchHistory, deleteHistoryItem } from '../api/auth';
 import { useAuth } from '../contexts/AuthContext';
+import { useSidebar } from '../contexts/SidebarContext';
 import { getHistory, clearHistory } from '../store/local';
 
 const TYPE_CONFIG: Record<string, { label: string; icon: React.ReactNode }> = {
@@ -21,6 +22,7 @@ interface HistoryEntry {
   title: string;
   createdAt: string;
   source: 'server' | 'local';
+  jobId?: string;
 }
 
 export default function HistoryPage() {
@@ -29,6 +31,10 @@ export default function HistoryPage() {
   const [filter, setFilter] = useState<string>('all');
   const [items, setItems] = useState<HistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const job = searchParams.get('job');
+  const { jobs } = useSidebar();
+  const jobName = job ? jobs.find((j) => j.id === job)?.name : undefined;
 
   const loadHistory = async () => {
     setLoading(true);
@@ -49,6 +55,7 @@ export default function HistoryPage() {
               title: h.title || `${TYPE_CONFIG[type]?.label || type}`,
               createdAt: h.created_at || new Date(h.ts).toISOString(),
               source: 'server',
+              jobId: h.project_id || undefined,
             });
           }
         };
@@ -67,6 +74,7 @@ export default function HistoryPage() {
               title: h.title || `${TYPE_CONFIG[type]?.label || type}`,
               createdAt: new Date(h.ts).toISOString(),
               source: 'local',
+              jobId: h.jobId,
             });
           }
         }
@@ -82,7 +90,8 @@ export default function HistoryPage() {
 
   useEffect(() => { loadHistory(); }, [isLoggedIn]);
 
-  const filtered = filter === 'all' ? items : items.filter((h) => h.type === filter);
+  const byJob = job ? items.filter((h) => h.jobId === job) : items;
+  const filtered = filter === 'all' ? byJob : byJob.filter((h) => h.type === filter);
 
   const handleDelete = (item: HistoryEntry) => {
     Modal.confirm({
@@ -158,16 +167,27 @@ export default function HistoryPage() {
         </Button>
       </header>
 
+      {job && (
+        <Alert
+          type="info"
+          showIcon
+          closable
+          className="mb-16"
+          message={<>当前查看岗位「{jobName || '未知岗位'}」的历史记录</>}
+          onClose={() => setSearchParams({})}
+        />
+      )}
+
       <div className="hp-body">
         <Segmented
           value={filter}
           onChange={(v) => setFilter(v as string)}
           block
           options={[
-            { label: `全部 (${items.length})`, value: 'all' },
-            { label: `JD (${items.filter((h) => h.type === 'jd').length})`, value: 'jd' },
-            { label: `简历 (${items.filter((h) => h.type === 'resume').length})`, value: 'resume' },
-            { label: `面试 (${items.filter((h) => h.type === 'interview').length})`, value: 'interview' },
+            { label: `全部 (${byJob.length})`, value: 'all' },
+            { label: `JD (${byJob.filter((h) => h.type === 'jd').length})`, value: 'jd' },
+            { label: `简历 (${byJob.filter((h) => h.type === 'resume').length})`, value: 'resume' },
+            { label: `面试 (${byJob.filter((h) => h.type === 'interview').length})`, value: 'interview' },
           ]}
           className="mb-16"
         />

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button, Space, message, Card, Empty, Alert, Tag, Tooltip } from 'antd';
 import {
   ThunderboltOutlined,
@@ -8,20 +8,46 @@ import {
   CheckCircleOutlined,
   LoadingOutlined,
   FileSearchOutlined,
+  FilePdfOutlined,
 } from '@ant-design/icons';
 import FileUpload from '../shared/FileUpload';
 import Steps from '../shared/HorizontalSteps';
 import { JDResultView } from '../shared/ResultViews';
 import { api } from '../../api/client';
 import { Settings, JDResult } from '../../types';
-import { setJDResult, addHistorySynced } from '../../store/local';
+import { getActiveJob, getJDResult, setJDResult, addHistorySynced } from '../../store/local';
+import { exportNodeToPdf, reportFilename } from '../../utils/exportPdf';
+import { useSidebar } from '../../contexts/SidebarContext';
 
 export default function JDAnalysis({ settings }: { settings: Settings }) {
+  const { activeJobId, refreshJobs } = useSidebar();
   const [text, setText] = useState('');
-  const [result, setResult] = useState<JDResult | null>(null);
+  const [result, setResult] = useState<JDResult | null>(() => getJDResult());
   const [loading, setLoading] = useState(false);
   const [steps, setSteps] = useState<{ label: string; done: boolean }[]>([]);
   const [shareUrl, setShareUrl] = useState('');
+  const [exporting, setExporting] = useState(false);
+  const resultRef = useRef<HTMLDivElement>(null);
+  // 切岗位 / 刷新后回读该岗位已存的 JD 拆解（P0 修复：结果区不再会话态丢失）
+  useEffect(() => {
+    setResult(getJDResult());
+  }, [activeJobId]);
+
+  // P2-3 导出 PDF：结果容器整块截图（导出态隐藏交互元素），A4 分页
+  const exportPdf = async () => {
+    const node = resultRef.current;
+    if (!node || !result) return;
+    setExporting(true);
+    try {
+      const filename = reportFilename(getActiveJob()?.name || '未命名岗位', 'JD拆解');
+      await exportNodeToPdf(node, filename, { exportClass: 'pdf-exporting' });
+      message.success('PDF 已导出');
+    } catch (e: any) {
+      message.error(`导出失败：${e?.message || e}`);
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const analyze = async () => {
     if (!text.trim()) return message.warning('请先上传或粘贴 JD');
@@ -36,6 +62,7 @@ export default function JDAnalysis({ settings }: { settings: Settings }) {
         else if (msg.type === 'result') {
           setResult(msg.data);
           setJDResult(msg.data);
+          refreshJobs();
           addHistorySynced('jd', {
             id: Date.now().toString(),
             ts: Date.now(),
@@ -43,8 +70,10 @@ export default function JDAnalysis({ settings }: { settings: Settings }) {
             data: msg.data,
             provider: msg.provider,
             model: msg.model,
+            jobId: activeJobId ?? undefined,
           });
-          message.success('拆解完成，已存入会话上下文');
+          const jobName = getActiveJob()?.name || '';
+          message.success(`拆解完成，已存入岗位「${jobName}」`);
         } else if (msg.type === 'error') message.error(msg.message);
       }
     } catch (e: any) {
@@ -115,6 +144,17 @@ export default function JDAnalysis({ settings }: { settings: Settings }) {
             一键分享
           </Button>
         </Tooltip>
+        <Tooltip title="导出当前拆解报告为 A4 PDF">
+          <Button
+            className="btn-share"
+            disabled={!result || exporting}
+            loading={exporting}
+            icon={<FilePdfOutlined />}
+            onClick={exportPdf}
+          >
+            导出 PDF
+          </Button>
+        </Tooltip>
       </div>
 
       {/* 分享结果 */}
@@ -142,7 +182,7 @@ export default function JDAnalysis({ settings }: { settings: Settings }) {
           className="ra-share-alert"
           message={
             <span>
-              已存入会话上下文，切换到 <Tag color="processing" bordered={false}>简历拆解</Tag> Tab 将自动联动岗位画像 + 关键词
+              已存入岗位「{getActiveJob()?.name || '未命名岗位'}」的上下文，切换到 <Tag color="processing" bordered={false}>简历拆解</Tag> Tab 将自动联动岗位画像 + 关键词
               <ArrowRightOutlined className="ml-4" />
             </span>
           }
@@ -150,7 +190,7 @@ export default function JDAnalysis({ settings }: { settings: Settings }) {
       )}
 
       {/* 结果 */}
-      <div className="step-detail-enter">
+      <div className="step-detail-enter" ref={resultRef}>
         {result ? <JDResultView data={result} /> : !loading ? <Empty description="上传JD，让领航员帮你4 步拆出岗位画像与关键词" /> : null}
       </div>
     </div>

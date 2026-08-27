@@ -8,8 +8,8 @@ dotenv.config({ override: true });
 const ENV_PROFILES = {
   claude: {
     apiKey: process.env.ANTHROPIC_API_KEY,
-    baseUrl: 'https://api.anthropic.com',
-    model: '',
+    baseUrl: process.env.ANTHROPIC_BASE_URL || 'https://api.anthropic.com',
+    model: process.env.ANTHROPIC_MODEL || '',
   },
   openai: {
     apiKey: process.env.OPENAI_API_KEY,

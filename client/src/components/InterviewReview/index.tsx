@@ -13,17 +13,21 @@ import {
   CheckCircleOutlined, FireOutlined, BookOutlined,
   AudioMutedOutlined, InboxOutlined,
   ProfileOutlined, ExclamationCircleOutlined, ShopOutlined, CrownOutlined, TeamOutlined, MailOutlined,
+  FilePdfOutlined,
 } from '@ant-design/icons';
 import { Bubble, Sender, Prompts, Actions, Suggestion, Conversations } from '@ant-design/x';
 import type { ActionItem } from '@ant-design/x/es/actions/interface';
 import XMarkdown from '@ant-design/x-markdown';
 import { api } from '../../api/client';
-import { fetchHistory } from '../../api/auth';
+import { fetchHistory, syncHistoryBatch, deleteHistoryItem, getToken } from '../../api/auth';
 import { useAuth } from '../../contexts/AuthContext';
 import { Settings, SSEMessage } from '../../types';
 import FileUpload from '../shared/FileUpload';
-import { getJDProfile, getResumeSummary, getJDKeywords, getJDResult, getHistory, clearHistory } from '../../store/local';
+import { getJDProfile, getResumeSummary, getJDKeywords, getJDResult, getActiveJob, getGrowthPlan, setGrowthPlan, clearGrowthPlan, getUserMemory, clearUserMemory, accumulateMemory, getHistory, clearHistory, upsertHistory, deleteHistoryItemLocal, genId } from '../../store/local';
+import type { GrowthPlan } from '../../store/local';
 import { JDResultBrief } from '../shared/ResultViews';
+import { exportNodeToPdf, reportFilename } from '../../utils/exportPdf';
+import { useSidebar } from '../../contexts/SidebarContext';
 
 interface Msg {
   role: 'user' | 'assistant';
@@ -31,29 +35,110 @@ interface Msg {
   streaming?: boolean;
 }
 
+// P2-3 成长档案导出体：结构化纯文本（html2canvas 不吃 markdown 高亮，全用标签 + pre-wrap）
+function GrowthPlanPdfBody({ plan }: { plan: GrowthPlan }) {
+  return (
+    <div className="pdf-growth">
+      <h3 className="pdf-report-title">我的成长档案</h3>
+      <div className="pdf-report-meta">
+        <span>来源岗位：{plan.sourceJob || '—'}</span>
+        <span>更新时间：{new Date(plan.updatedAt).toLocaleDateString('zh-CN')}</span>
+      </div>
+      {plan.weakest_link && <p><b>最该先解决：</b>{plan.weakest_link}</p>}
+      {plan.knowledge_gaps?.length > 0 && <p><b>知识缺口：</b>{plan.knowledge_gaps.join('；')}</p>}
+      {plan.practice_items?.length > 0 && <p><b>待练项：</b>{plan.practice_items.join('；')}</p>}
+      {plan.next_strategy && <p><b>下轮策略：</b>{plan.next_strategy}</p>}
+      {plan.summary && <p><b>复盘结论：</b>{plan.summary}</p>}
+    </div>
+  );
+}
+
 export default function InterviewReview({ settings, onGotoJD, viewMode = 'prep' }: { settings: Settings; onGotoJD?: () => void; viewMode?: 'prep' | 'review' }) {
-  const [messages, setMessages] = useState<Msg[]>([]);
+  const { isLoggedIn } = useAuth();
+  const { activeJobId } = useSidebar();
+
+  // P1-1 会话恢复：当前会话 = 本地历史一条（draftKey 标记 id，debounce upsert），刷新/切岗位回读，历史点击恢复
+  const draftKey = `cjc:interviewActiveId:${viewMode}:${activeJobId ?? 'none'}`;
+  const readDraft = useCallback(() => {
+    const id = localStorage.getItem(draftKey);
+    if (!id) return null;
+    return getHistory('interview').find((x) => x.id === id) || null;
+  }, [draftKey]);
+  const activeIdRef = useRef<string | null>(localStorage.getItem(draftKey));
+  const [messages, setMessages] = useState<Msg[]>(() => readDraft()?.data?.messages || []);
   const [loading, setLoading] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
+  // P2-3 导出 PDF：面试对话走隐藏结构化容器（不截气泡 UI），成长档案独立导出
+  const [exporting, setExporting] = useState(false);
+  const [growthExporting, setGrowthExporting] = useState(false);
+  const exportRef = useRef<HTMLDivElement>(null);
+  const growthExportRef = useRef<HTMLDivElement>(null);
   const [inputValue, setInputValue] = useState('');
   const [uploadText, setUploadText] = useState(''); // 文件上传提取的文本
   const [showHistory, setShowHistory] = useState(false);
-  const [serverHistory, setServerHistory] = useState<Array<{ id: string; title: string; created_at?: string }>>([]);
+  const [serverHistory, setServerHistory] = useState<Array<{ id: string; title: string; created_at?: string; data?: any; jobId?: string }>>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  // P1-1 历史变更 tick：persist/恢复/清空后自增，驱动历史面板刷新（localStorage 变更不触发 messages.length 变化，须显式计数）
+  const [histTick, setHistTick] = useState(0);
   const chatEndRef = useRef<HTMLDivElement>(null);
   // viewMode 为只读 prop（由 Layout Tab 控制），不暴露切换入口
-  const [round, setRound] = useState('');
-  const [duration, setDuration] = useState('');
+  const [round, setRound] = useState(() => readDraft()?.data?.round || '');
+  const [duration, setDuration] = useState(() => readDraft()?.data?.duration || '');
 
-  const { isLoggedIn } = useAuth();
+  // P0-2：成长档案沉淀状态 + 展开控制（跨岗位全局一份，来源岗位见 sourceJob）
+  const [archiving, setArchiving] = useState(false);
+  const [archiveExpanded, setArchiveExpanded] = useState(false);
+  const [growthTick, setGrowthTick] = useState(0);
+  const growthPlan = useMemo(() => getGrowthPlan(), [growthTick, activeJobId]);
 
-  const jdResult = getJDResult();
+  // P1-2：用户级记忆（跨会话累积），沉淀/清除后经 memTick 重读
+  const [memTick, setMemTick] = useState(0);
+  const memory = useMemo(() => getUserMemory(), [memTick]);
+
+  // activeJobId 来自 context：切换岗位触发重渲染，重读该岗位上下文 + 成长档案
+  const jdResult = activeJobId == null ? null : getJDResult();
+  const jobName = getActiveJob()?.name || '';
   const context = {
     jobProfile: getJDProfile(),
     resumeSummary: getResumeSummary(),
     jdKeywords: getJDKeywords(),
+    growthPlan,
+    memory,
   };
   const hasContext = !!(context.jobProfile || context.resumeSummary);
+
+  // P1-1 持久化当前会话（本地 upsert + 登录态服务端批量 upsert，fire-and-forget）
+  const persistSession = useCallback((msgs: Msg[]) => {
+    const id = activeIdRef.current;
+    if (!id || !msgs.length) return;
+    if (msgs[msgs.length - 1].streaming) return; // P1-1 流式半成品不落盘，防刷新恢复出卡死打字气泡
+    const title = [...msgs].reverse().find((m) => m.role === 'user')?.content.slice(0, 30) || `对话 ${new Date().toLocaleDateString('zh-CN')}`;
+    const data = { messages: msgs, round, duration, mode: viewMode };
+    upsertHistory('interview', { id, ts: Date.now(), title, data, jobId: activeJobId ?? undefined });
+    localStorage.setItem(draftKey, id);
+    setHistTick((t) => t + 1); // P1-1 新会话落盘后刷新历史面板
+    if (getToken()) {
+      syncHistoryBatch([{ id, type: 'interview', ts: Date.now(), title, data, jobId: activeJobId ?? undefined }]).catch(() => {});
+    }
+  }, [round, duration, viewMode, activeJobId, draftKey]);
+
+  // P1-1 会话自动持久化：600ms debounce（流式期间每条 token 会重置计时，稳定后落盘）
+  useEffect(() => {
+    if (!activeIdRef.current || !messages.length) return;
+    const timer = setTimeout(() => persistSession(messages), 600);
+    return () => clearTimeout(timer);
+  }, [messages, persistSession]);
+
+  // P1-1 切岗位 / 切 prep-review Tab：按新 draftKey 回读对应会话（无则空会话）
+  useEffect(() => {
+    const draft = readDraft();
+    activeIdRef.current = localStorage.getItem(draftKey);
+    setMessages(draft?.data?.messages || []);
+    setRound(draft?.data?.round || '');
+    setDuration(draft?.data?.duration || '');
+    setShareUrl('');
+    setShowHistory(false);
+  }, [viewMode, activeJobId, readDraft]);
 
   // 从服务端或 localStorage 拉取历史记录
   useEffect(() => {
@@ -67,6 +152,8 @@ export default function InterviewReview({ settings, onGotoJD, viewMode = 'prep' 
             setServerHistory(items.map((h: any) => ({
               id: h.id,
               title: h.title || `对话 ${new Date(h.created_at).toLocaleDateString('zh-CN')}`,
+              data: h.data,
+              jobId: h.project_id,
             })));
           }
         } else {
@@ -95,7 +182,55 @@ export default function InterviewReview({ settings, onGotoJD, viewMode = 'prep' 
       key: h.id,
       label: h.title || `对话 ${new Date(h.ts).toLocaleDateString('zh-CN')}`,
     }));
-  }, [isLoggedIn, serverHistory, messages.length]);
+  }, [isLoggedIn, serverHistory, messages.length, histTick]);
+
+  // P1-1 从历史恢复会话：本地 getHistory / 服务端 serverHistory 双数据源，均需含 data
+  const restoreHistory = (key: string) => {
+    const remote = isLoggedIn ? serverHistory.find((h) => h.id === key) : null;
+    const local = getHistory('interview').find((h) => h.id === key);
+    const item = remote?.data ? remote : local;
+    if (!item?.data) return message.warning('该历史会话数据缺失，无法恢复');
+    const d = item.data;
+    if (d.mode && d.mode !== viewMode) {
+      message.info(`该会话来自「${d.mode === 'prep' ? '面试准备' : '面试复盘'}」，已按内容恢复`);
+    }
+    activeIdRef.current = key;
+    localStorage.setItem(draftKey, key);
+    setMessages(Array.isArray(d.messages) ? d.messages : []);
+    setRound(d.round || '');
+    setDuration(d.duration || '');
+    setShareUrl('');
+    setShowHistory(false);
+    setHistTick((t) => t + 1);
+  };
+
+  // 清空当前会话：删本地该条 + 服务端（登录态），重置 activeId/draftKey
+  const clearCurrentSession = () => {
+    const id = activeIdRef.current;
+    if (id) {
+      deleteHistoryItemLocal('interview', id);
+      if (getToken()) deleteHistoryItem(id).catch(() => {});
+    }
+    activeIdRef.current = null;
+    localStorage.removeItem(draftKey);
+    setMessages([]);
+    setShareUrl('');
+    setInputValue('');
+    setHistTick((t) => t + 1);
+  };
+
+  // 清空全部历史：清本地 + 服务端逐条删（登录态），重置 activeId/draftKey
+  const clearAllHistory = () => {
+    clearHistory('interview');
+    if (getToken()) serverHistory.forEach((h) => deleteHistoryItem(h.id).catch(() => {}));
+    activeIdRef.current = null;
+    localStorage.removeItem(draftKey);
+    setMessages([]);
+    setShareUrl('');
+    setShowHistory(false);
+    setHistTick((t) => t + 1);
+    message.success('已清空');
+  };
 
   // 复制消息
   const copyMessage = useCallback((content: string) => {
@@ -132,17 +267,15 @@ export default function InterviewReview({ settings, onGotoJD, viewMode = 'prep' 
           });
         }
       }
-      setMessages((s) => {
-        const c = [...s];
-        c[c.length - 1] = { role: 'assistant', content: acc, streaming: false };
-        return c;
-      });
+      const finalMsgs: Msg[] = [...truncMsgs, userMsg, { role: 'assistant', content: acc, streaming: false }];
+      setMessages(finalMsgs);
+      persistSession(finalMsgs); // P1-1 重试后同样立即落盘
     } catch (e: any) {
       message.error(e.message);
       setMessages((s) => s.slice(0, -1));
     }
     setLoading(false);
-  }, [messages, context, settings, viewMode, round, duration]);
+  }, [messages, context, settings, viewMode, round, duration, persistSession]);
 
   // Bubble roles 配置 — 深度利用 @ant-design/x
   const roles = useMemo(
@@ -232,6 +365,17 @@ export default function InterviewReview({ settings, onGotoJD, viewMode = 'prep' 
   );
 
 
+  // P2-3 导出 PDF 数据源：user 消息 → 下一条 assistant 消息配成 Q/A 对（跳过流式半成品）
+  const qaPairs = useMemo(() => {
+    const pairs: { q: string; a: string }[] = [];
+    for (let i = 0; i < messages.length; i++) {
+      if (messages[i].role !== 'user') continue;
+      const a = messages[i + 1];
+      if (a?.role === 'assistant' && !a.streaming) pairs.push({ q: messages[i].content, a: a.content });
+    }
+    return pairs;
+  }, [messages]);
+
   const send = async (content: string) => {
     // 合并上传区文本：如果有未发送的上传内容，前置追加
     const uploadPart = uploadText ? `${uploadText}\n\n` : '';
@@ -243,6 +387,7 @@ export default function InterviewReview({ settings, onGotoJD, viewMode = 'prep' 
     const filterPart = filterHints ? `\n\n${filterHints}` : '';
     const finalContent = `${uploadPart}${content}${filterPart}`;
     if (!finalContent.trim() || loading) return;
+    if (!activeIdRef.current) activeIdRef.current = genId();
     const userMsg: Msg = { role: 'user', content: finalContent };
     const newMsgs = [...messages, userMsg];
     setMessages([...newMsgs, { role: 'assistant', content: '', streaming: true }]);
@@ -266,11 +411,9 @@ export default function InterviewReview({ settings, onGotoJD, viewMode = 'prep' 
           message.error(msg.message);
         }
       }
-      setMessages((s) => {
-        const c = [...s];
-        c[c.length - 1] = { role: 'assistant', content: acc, streaming: false };
-        return c;
-      });
+      const finalMsgs: Msg[] = [...messages, userMsg, { role: 'assistant', content: acc, streaming: false }];
+      setMessages(finalMsgs);
+      persistSession(finalMsgs); // P1-1 完成即落盘，防切页丢尾部
     } catch (e: any) {
       message.error(e.message);
       setMessages((s) => s.slice(0, -1));
@@ -288,6 +431,67 @@ export default function InterviewReview({ settings, onGotoJD, viewMode = 'prep' 
     setShareUrl(`${location.origin}/share/${r.id}`);
     message.success('分享链接已生成');
   };
+
+  // P0-2：沉淀复盘结论 → 成长档案（一次性收敛，复用 analyze 的绕 tool_use 模式）
+  const doArchive = async () => {
+    if (!messages.length) return;
+    setArchiving(true);
+    try {
+      for await (const msg of api.consolidateGrowth(messages, context, settings) as AsyncGenerator<SSEMessage>) {
+        if (msg.type === 'result') {
+          // P1-2：practiced 从 growthPlan 剥离，仅进用户记忆累积，不污染存档
+          const { practiced, ...rest } = msg.data;
+          setGrowthPlan({ ...rest, sourceJob: jobName, updatedAt: Date.now() });
+          accumulateMemory(practiced, rest.summary);
+          setGrowthTick((t) => t + 1);
+          setMemTick((t) => t + 1);
+          setArchiveExpanded(true);
+          message.success('已沉淀到成长档案，后续准备 / 复盘会自动参考');
+        } else if (msg.type === 'error') {
+          message.error(msg.message);
+        }
+      }
+    } catch (e: any) {
+      message.error(e.message);
+    }
+    setArchiving(false);
+  };
+
+  // P2-3 导出面试对话摘要 PDF：隐藏容器整块截图（默认渲染器，样式表正常加载）
+  const exportPdf = async () => {
+    const node = exportRef.current;
+    if (!node || !messages.length) return;
+    setExporting(true);
+    try {
+      const filename = reportFilename(jobName || '未命名岗位', viewMode === 'prep' ? '面试准备' : '面试复盘');
+      await exportNodeToPdf(node, filename, { exportClass: 'pdf-exporting' });
+      message.success('PDF 已导出');
+    } catch (e: any) {
+      message.error(`导出失败：${e?.message || e}`);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  // P2-3 导出成长档案 PDF（档案卡片独立下载）
+  const exportGrowthPdf = async () => {
+    const node = growthExportRef.current;
+    if (!node || !growthPlan) return;
+    setGrowthExporting(true);
+    try {
+      const filename = reportFilename(growthPlan.sourceJob || jobName || '未命名岗位', '成长档案');
+      await exportNodeToPdf(node, filename, { exportClass: 'pdf-exporting' });
+      message.success('成长档案已导出');
+    } catch (e: any) {
+      message.error(`导出失败：${e?.message || e}`);
+    } finally {
+      setGrowthExporting(false);
+    }
+  };
+
+  // 收尾气泡：复盘最后一条 user 消息带结束语时，提示沉淀
+  const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user');
+  const showWrapUp = viewMode === 'review' && !!lastUserMsg && /(结束了|没了|就这些|复盘完|差不多了|先这样|就这样)/.test(lastUserMsg.content);
 
   // Prompts — 按模式切换，更丰富的图标和描述
   // review 快捷卡按「复盘后的增值动作」3 组切（MECE）：整体表现/预判深挖/面试官视角
@@ -418,7 +622,7 @@ export default function InterviewReview({ settings, onGotoJD, viewMode = 'prep' 
                       label: (
                         <Space>
                           <ThunderboltOutlined className="icon-primary" />
-                          对照 JD
+                          对照 JD{jobName ? ` · ${jobName}` : ''}
                           <Tag color="success" bordered={false}>已联动</Tag>
                         </Space>
                       ),
@@ -463,6 +667,116 @@ export default function InterviewReview({ settings, onGotoJD, viewMode = 'prep' 
               </Empty>
             </Card>
           )}
+
+          {/* 成长档案卡片 — 与是否联动上下文无关，prep/review 都显示 */}
+          <Card
+            size="small"
+            className="sidebar-card ir-archive-card"
+            title={
+              <Space>
+                <BulbOutlined className="icon-gold" />
+                我的成长档案
+                {growthPlan && <Tag color="gold" bordered={false}>已沉淀</Tag>}
+              </Space>
+            }
+            extra={
+              growthPlan ? (
+                <Space size={0}>
+                  <Button type="text" size="small" icon={<FilePdfOutlined />} loading={growthExporting} disabled={growthExporting} onClick={exportGrowthPdf}>
+                    下载
+                  </Button>
+                  <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => { clearGrowthPlan(); setGrowthTick((t) => t + 1); message.success('已清空成长档案'); }}>
+                    清除
+                  </Button>
+                </Space>
+              ) : null
+            }
+          >
+            {growthPlan ? (
+              <div>
+                {growthPlan.sourceJob && (
+                  <Typography.Text type="secondary" className="ir-archive-source">
+                    来源：{growthPlan.sourceJob} · {new Date(growthPlan.updatedAt).toLocaleDateString('zh-CN')}
+                  </Typography.Text>
+                )}
+                <Collapse
+                  ghost
+                  activeKey={archiveExpanded ? ['body'] : []}
+                  onChange={(k) => setArchiveExpanded(k.includes('body'))}
+                  items={[{
+                    key: 'body',
+                    label: '查看档案内容',
+                    children: (
+                      <div className="ir-archive-body">
+                        {growthPlan.weakest_link && <p><b>最该先解决：</b>{growthPlan.weakest_link}</p>}
+                        {growthPlan.knowledge_gaps?.length > 0 && <p><b>知识缺口：</b>{growthPlan.knowledge_gaps.join('；')}</p>}
+                        {growthPlan.practice_items?.length > 0 && <p><b>待练项：</b>{growthPlan.practice_items.join('；')}</p>}
+                        {growthPlan.next_strategy && <p><b>下轮策略：</b>{growthPlan.next_strategy}</p>}
+                      </div>
+                    ),
+                  }]}
+                />
+              </div>
+            ) : (
+              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="复盘后沉淀结论，短板自动带到下一轮">
+                {viewMode === 'review' && messages.length > 0 && (
+                  <Button size="small" type="primary" ghost icon={<BulbOutlined />} onClick={doArchive} loading={archiving}>
+                    沉淀当前复盘
+                  </Button>
+                )}
+              </Empty>
+            )}
+          </Card>
+
+          {/* 我的记忆卡片 — 跨会话累积（P1-2），prep/review 都显示 */}
+          <Card
+            size="small"
+            className="sidebar-card ir-memory-card"
+            title={
+              <Space>
+                <BookOutlined className="icon-purple" />
+                我的记忆
+                {memory && memory.sessionCount > 0 && <Tag color="processing" bordered={false}>已沉淀 {memory.sessionCount} 场</Tag>}
+              </Space>
+            }
+            extra={
+              memory && (memory.practiced?.length > 0 || memory.conclusions?.length > 0) ? (
+                <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => { clearUserMemory(); setMemTick((t) => t + 1); message.success('已清空我的记忆'); }}>
+                  清除
+                </Button>
+              ) : null
+            }
+          >
+            {memory && (memory.practiced?.length > 0 || memory.conclusions?.length > 0) ? (
+              <div className="ir-memory-body">
+                {memory.practiced?.length > 0 && (
+                  <div className="ir-memory-block">
+                    <div className="ir-memory-label">练过</div>
+                    <div className="ir-memory-chips">
+                      {memory.practiced.slice(0, 8).map((p) => (
+                        <span key={p.title} className="ir-memory-chip">
+                          {p.title}
+                          {p.count > 1 ? ` ×${p.count}` : ''}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {memory.conclusions?.length > 0 && (
+                  <div className="ir-memory-block">
+                    <div className="ir-memory-label">复盘结论</div>
+                    <ul className="ir-memory-list">
+                      {memory.conclusions.slice(0, 5).map((c, i) => (
+                        <li key={i}>{c}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="沉淀复盘后，练过的题与结论会累积记忆" />
+            )}
+          </Card>
         </aside>
 
         {/* 右：面试对话区 */}
@@ -473,10 +787,18 @@ export default function InterviewReview({ settings, onGotoJD, viewMode = 'prep' 
               {viewMode === 'prep' ? '描述你的面试需求，领航员帮你定制准备方案' : '描述你的面试情况和题目，逐题复盘分析'}
             </Typography.Text>
             <Space size={4} className="ir-top-actions">
+              {viewMode === 'review' && messages.length > 0 && (
+                <Button size="small" type="primary" ghost icon={<BulbOutlined />} onClick={doArchive} loading={archiving}>
+                  沉淀复盘结论
+                </Button>
+              )}
               <Button size="small" className="btn-share" icon={<ShareAltOutlined />} onClick={share} disabled={!messages.length}>
                 一键分享
               </Button>
-              <Button size="small" type="text" icon={<ClearOutlined />} onClick={() => { setMessages([]); setShareUrl(''); }} disabled={!messages.length}>
+              <Button size="small" className="btn-share" icon={<FilePdfOutlined />} onClick={exportPdf} disabled={!messages.length || exporting} loading={exporting}>
+                导出 PDF
+              </Button>
+              <Button size="small" type="text" icon={<ClearOutlined />} onClick={clearCurrentSession} disabled={!messages.length}>
                 清空会话
               </Button>
               <Button
@@ -493,15 +815,13 @@ export default function InterviewReview({ settings, onGotoJD, viewMode = 'prep' 
           {/* 历史面板（可收起） */}
           {showHistory && historyItems.length > 0 && (
             <Card size="small" className="history-panel" title="历史会话" extra={
-              <Button type="text" size="small" danger onClick={() => { clearHistory('interview'); setShowHistory(false); message.success('已清空'); }}>
+              <Button type="text" size="small" danger onClick={clearAllHistory}>
                 <DeleteOutlined /> 清空
               </Button>
             }>
               <Conversations
                 items={historyItems}
-                onActiveChange={() => {
-                  message.info('历史记录仅供查看，暂不支持恢复');
-                }}
+                onActiveChange={(key) => restoreHistory(String(key))}
               />
             </Card>
           )}
@@ -548,6 +868,24 @@ export default function InterviewReview({ settings, onGotoJD, viewMode = 'prep' 
 
             {messages.length > 0 && (
               <Bubble.List autoScroll roles={roles} items={bubbleItems} />
+            )}
+
+            {showWrapUp && (
+              <Alert
+                type="info"
+                showIcon
+                icon={<BulbOutlined />}
+                className="ir-wrapup-alert"
+                message="这场复盘到一段落了"
+                description={
+                  <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                    <span>把结论沉淀进成长档案，下一轮准备 / 复盘会自动带上短板。</span>
+                    <Button size="small" type="primary" onClick={doArchive} loading={archiving} icon={<BulbOutlined />}>
+                      沉淀复盘结论
+                    </Button>
+                  </Space>
+                }
+              />
             )}
 
             {/* 快捷 Prompts — 按组渲染（MECE 分组，组标题 + 组内卡网格） */}
@@ -616,6 +954,47 @@ export default function InterviewReview({ settings, onGotoJD, viewMode = 'prep' 
           )}
         </main>
       </div>
+
+      {/* P2-3 导出容器：离屏隐藏（默认渲染器截图，不截气泡 UI；Q/A 结构化 + 成长档案附录） */}
+      <div className="pdf-export-report" ref={exportRef} aria-hidden>
+        <h2 className="pdf-report-title">{viewMode === 'prep' ? '面试准备对话摘要' : '面试复盘对话摘要'}</h2>
+        <div className="pdf-report-meta">
+          <span>岗位：{jobName || '未命名岗位'}</span>
+          <span>日期：{new Date().toLocaleDateString('zh-CN')}</span>
+          {round && <span>第几面：{round}</span>}
+          {duration && <span>面试时长：{duration}</span>}
+          <span>消息数：{qaPairs.length} 组 Q/A</span>
+        </div>
+        {qaPairs.length > 0 ? (
+          qaPairs.map((p, i) => (
+            <div key={i} className="pdf-qa">
+              <div className="pdf-qa-q">Q{i + 1}. {p.q}</div>
+              <div className="pdf-qa-a">{p.a}</div>
+            </div>
+          ))
+        ) : (
+          <div className="pdf-qa">暂无有效对话内容（需先完成一轮问答）</div>
+        )}
+        {growthPlan && (
+          <div className="pdf-section pdf-growth">
+            <h3 className="pdf-report-title">成长档案附录</h3>
+            <div className="pdf-report-meta">
+              <span>来源岗位：{growthPlan.sourceJob || '—'}</span>
+              <span>更新时间：{new Date(growthPlan.updatedAt).toLocaleDateString('zh-CN')}</span>
+            </div>
+            {growthPlan.weakest_link && <p><b>最该先解决：</b>{growthPlan.weakest_link}</p>}
+            {growthPlan.knowledge_gaps?.length > 0 && <p><b>知识缺口：</b>{growthPlan.knowledge_gaps.join('；')}</p>}
+            {growthPlan.practice_items?.length > 0 && <p><b>待练项：</b>{growthPlan.practice_items.join('；')}</p>}
+            {growthPlan.next_strategy && <p><b>下轮策略：</b>{growthPlan.next_strategy}</p>}
+            {growthPlan.summary && <p><b>复盘结论：</b>{growthPlan.summary}</p>}
+          </div>
+        )}
+      </div>
+      {growthPlan && (
+        <div className="pdf-export-report" ref={growthExportRef} aria-hidden>
+          <GrowthPlanPdfBody plan={growthPlan} />
+        </div>
+      )}
     </div>
   );
 }

@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { Tooltip, Dropdown } from 'antd';
+import { Tooltip, Dropdown, Modal, Input, message } from 'antd';
 import type { MenuProps } from 'antd';
-import { HistoryOutlined, LogoutOutlined } from '@ant-design/icons';
+import { HistoryOutlined, LogoutOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useSidebar } from '../../contexts/SidebarContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { createJob, deleteJob } from '../../store/local';
+import type { JobContext } from '../../store/local';
 import InviteDialog from './InviteDialog';
 
 /* ---------- Model status ---------- */
@@ -101,98 +103,123 @@ function AdvancedFeatureRow() {
   );
 }
 
-function SessionsNav() {
-  const { expandedSection, setExpandedSection, setHistoryTab } = useSidebar();
-  const isExpanded = expandedSection === 'project-history';
+// 求职岗位：多岗位上下文切换器（P0-1）
+function JobSection() {
+  const navigate = useNavigate();
+  const { jobs, activeJobId, setActiveJob, refreshJobs } = useSidebar();
+  const [newJobOpen, setNewJobOpen] = useState(false);
+  const [newJobName, setNewJobName] = useState('');
+
+  const activeJob = jobs.find((j) => j.id === activeJobId) || jobs[0] || null;
+
+  const chip = (show: boolean, label: string) =>
+    show ? <span className="job-chip">{label}</span> : null;
+
+  const switchJob = (job: JobContext) => {
+    if (job.id === activeJobId) return;
+    setActiveJob(job.id);
+    message.success(`已切换到「${job.name}」`);
+    const missing: string[] = [];
+    if (!job.jdResult) missing.push('JD');
+    if (!job.resumeSummary) missing.push('简历');
+    if (missing.length) {
+      message.info(`该岗位还没拆解${missing.join('、')}，对应 Tab 将按通用标准工作`);
+    }
+  };
+
+  const confirmDelete = () => {
+    if (!activeJob) return;
+    Modal.confirm({
+      title: `删除岗位「${activeJob.name}」？`,
+      content: '该岗位的 JD 拆解与简历摘要会一并删除，不可恢复。',
+      okText: '删除',
+      okButtonProps: { danger: true },
+      cancelText: '取消',
+      onOk: () => {
+        deleteJob(activeJob.id);
+        refreshJobs();
+        message.success('已删除');
+      },
+    });
+  };
+
+  const createNewJob = () => {
+    const name = newJobName.trim();
+    if (!name) return message.warning('请填写岗位名（建议：公司 + 岗位）');
+    createJob(name);
+    refreshJobs();
+    setNewJobOpen(false);
+    setNewJobName('');
+    message.success(`已创建并切换到「${name}」`);
+  };
+
+  const jobMenu: MenuProps['items'] = [
+    ...jobs.map((j) => ({
+      key: j.id,
+      label: (
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{j.name}</span>
+          {j.id === activeJobId && <span style={{ color: '#c9a44c' }}>✓</span>}
+          {chip(!!j.jdResult, 'JD')}
+          {chip(!!j.resumeSummary, '简历')}
+        </span>
+      ),
+      onClick: () => switchJob(j),
+    })),
+    { type: 'divider' },
+    { key: 'job-history', icon: <HistoryOutlined />, label: '查看该岗位历史', onClick: () => navigate(`/history?job=${encodeURIComponent(activeJob.id)}`) },
+    { key: 'new', icon: <PlusOutlined />, label: '新建岗位', onClick: () => setNewJobOpen(true) },
+    ...(jobs.length > 1 ? [{ key: 'delete', icon: <DeleteOutlined />, danger: true, label: '删除当前岗位', onClick: confirmDelete }] : []),
+  ];
 
   return (
-    <div
-      style={{
-        display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 12, whiteSpace: 'nowrap',
-        background: isExpanded ? 'rgba(255,255,255,0.08)' : 'transparent',
-        margin: '0 4px',
-      }}
-      onClick={() => {
-        if (isExpanded) {
-          setExpandedSection(null);
-        } else {
-          setHistoryTab('tree');
-          setExpandedSection('project-history');
-        }
-      }}
-    >
-      <span style={{ fontSize: 15 }}>🗂</span>{' '}
-      <span className="strip-item-text">项目树 / 历史树</span>
-      <span className="strip-chevron" style={{ transition: 'transform 0.2s', transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
+    <div style={{ padding: '16px 8px 4px', flexShrink: 0 }}>
+      <div className="strip-section-label">求职岗位</div>
+      <div style={{ padding: '0 4px' }}>
+        {activeJob ? (
+          <Dropdown menu={{ items: jobMenu }} trigger={['click']} placement="bottomLeft">
+            <div className="strip-item" style={{ cursor: 'pointer' }}>
+              <span className="strip-item-icon">💼</span>
+              <span className="strip-item-text" style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{activeJob.name}</span>
+              <span style={{ display: 'flex', gap: 4, marginLeft: 'auto', paddingRight: 2, flexShrink: 0 }}>
+                {chip(!!activeJob.jdResult, 'JD✓')}
+                {chip(!!activeJob.resumeSummary, '简历✓')}
+              </span>
+            </div>
+          </Dropdown>
+        ) : (
+          <div className="strip-item" style={{ cursor: 'pointer' }} onClick={() => setNewJobOpen(true)}>
+            <span className="strip-item-icon">＋</span>
+            <span className="strip-item-text">新建岗位</span>
+          </div>
+        )}
+      </div>
+
+      <Modal
+        open={newJobOpen}
+        onOk={createNewJob}
+        onCancel={() => { setNewJobOpen(false); setNewJobName(''); }}
+        okText="创建"
+        cancelText="取消"
+        title="新建求职岗位"
+      >
+        <Input
+          value={newJobName}
+          onChange={(e) => setNewJobName(e.target.value)}
+          onPressEnter={createNewJob}
+          placeholder="如：字节跳动 · 内容运营"
+          autoFocus
+        />
+      </Modal>
     </div>
   );
 }
 
-function ExpandedArea() {
-  const { expandedSection, historyTab, setHistoryTab } = useSidebar();
-  const show = expandedSection === 'project-history';
-
-  return (
-    <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden', maxHeight: show ? 380 : 0, transition: 'max-height 0.3s ease', overflowY: 'auto' }}>
-      {!show && <div />} {/* prevent layout shift */}
-      {show && (
-        <>
-          <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-            <div
-              style={{ flex: 1, padding: '8px 4px', textAlign: 'center', fontSize: 11, cursor: 'pointer', borderBottom: historyTab === 'tree' ? '2px solid #fff' : '2px solid transparent', fontWeight: historyTab === 'tree' ? 600 : 400, color: historyTab === 'tree' ? '#fff' : 'rgba(255,255,255,0.5)' }}
-              onClick={() => setHistoryTab('tree')}
-            >项目树</div>
-            <div
-              style={{ flex: 1, padding: '8px 4px', textAlign: 'center', fontSize: 11, cursor: 'pointer', borderBottom: historyTab === 'history' ? '2px solid #fff' : '2px solid transparent', fontWeight: historyTab === 'history' ? 600 : 400, color: historyTab === 'history' ? '#fff' : 'rgba(255,255,255,0.5)' }}
-              onClick={() => setHistoryTab('history')}
-            >历史树</div>
-          </div>
-          <div style={{ padding: 10 }}>
-            {historyTab === 'tree' ? (
-              <div>
-                {/* Project tree placeholder — populated when projects API is integrated */}
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.8)', cursor: 'pointer', padding: '5px 8px', marginBottom: 6, borderRadius: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span>＋</span> 新建项目
-                </div>
-                {/* Folder group placeholder */}
-                <div style={{ marginBottom: 6 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 8px', fontSize: 11, fontWeight: 600, cursor: 'pointer', borderRadius: 4, color: 'rgba(255,255,255,0.8)' }}>
-                    <span>▶</span> 📂 默认
-                  </div>
-                  <div style={{ paddingLeft: 20 }}>
-                    <div style={{ fontSize: 11, padding: '5px 8px', cursor: 'pointer', borderRadius: 4, fontWeight: 500, color: 'rgba(255,255,255,0.7)' }}>💼 Google · AI PM <span style={{ fontSize: 9, opacity: 0.5, float: 'right' }}>2h前</span></div>
-                    <div style={{ fontSize: 11, padding: '5px 8px', cursor: 'pointer', borderRadius: 4, color: 'rgba(255,255,255,0.7)' }}>💼 Meta · SPM <span style={{ fontSize: 9, opacity: 0.5, float: 'right' }}>昨天</span></div>
-                  </div>
-                </div>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', cursor: 'pointer', padding: '3px 8px', borderRadius: 4 }}>＋ 新建文件夹</div>
-              </div>
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
-                {[
-                  { type: 'jd', label: 'JD 拆解', title: 'Google · AI PM', time: '2小时前', color: '#dbeafe' },
-                  { type: 'resume', label: '简历拆解', title: 'Meta · SRE', time: '昨天', color: '#dcfce7' },
-                  { type: 'review', label: '面试复盘', title: 'Byte · DSA轮', time: '3天前', color: '#fef3c7' },
-                  { type: 'jd', label: 'JD 拆解', title: 'Apple · PM', time: '1周前', color: '#dbeafe' },
-                ].map((item) => (
-                  <div key={item.title} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 6, padding: 10, cursor: 'pointer', color: 'rgba(255,255,255,0.8)' }}>
-                    <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 3, background: item.color, color: '#1a2744', display: 'inline-block', marginBottom: 4 }}>{item.label}</span>
-                    <div style={{ fontSize: 11, marginBottom: 3 }}>{item.title}</div>
-                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)' }}>{item.time}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
 
 /* ---------- Main Sidebar Component ---------- */
 
 export default function Sidebar({ modelStatus, modelChecked, modelError }: { modelStatus: ModelStatus; modelChecked: string; modelError: string }) {
-  const { expandedSection, setExpandedSection, inviteDialogOpen, closeInviteDialog, historyTab, setHistoryTab } = useSidebar();
+  const { inviteDialogOpen, closeInviteDialog } = useSidebar();
 
   return (
     <>
@@ -208,7 +235,7 @@ export default function Sidebar({ modelStatus, modelChecked, modelError }: { mod
 
         {/* Nav Items */}
         <div className="strip-items">
-          {/* Section 1: 基础配置 */}
+          {/* Section 0: 基础配置 */}
           <div style={{ padding: '16px 8px 8px', flexShrink: 0 }}>
             <div className="strip-section-label">基础配置</div>
             <div style={{ padding: '0 4px' }}>
@@ -219,15 +246,9 @@ export default function Sidebar({ modelStatus, modelChecked, modelError }: { mod
             </div>
           </div>
 
-          {/* Section 2: 管理会话 */}
-          <div style={{ marginTop: 'auto', padding: '0 8px 8px', flexShrink: 0 }}>
-            <div className="strip-section-label">管理会话</div>
-            <div style={{ padding: '0 4px' }}>
-              <SessionsNav />
-              {/* 展开面板紧贴菜单项下方，向下手风琴展开 */}
-              <ExpandedArea />
-            </div>
-          </div>
+          {/* Section 1: 求职岗位 */}
+          <JobSection />
+
         </div>
 
         {/* Footer */}

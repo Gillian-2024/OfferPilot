@@ -41,7 +41,7 @@ const step3Schema = z.object({
   ).describe('对照 JD 各维度的 gap 分析，这是简历拆解对照 JD 的核心产出'),
   module_issues: z.array(
     z.object({
-      module: z.string(),
+      module: z.string().describe('与 step1 的 modules[].name 完全一致：教育|实习|项目|校园|技能|自我评价（无法识别则按原文命名）'),
       issues: z.array(
         z.object({
           type: z.string().describe('定位|结构|量化|STAR|啰嗦|错别字'),
@@ -73,7 +73,7 @@ const step4Schema = z.object({
   ),
   module_issues: z.array(
     z.object({
-      module: z.string(),
+      module: z.string().describe('与 step1 的 modules[].name 完全一致：教育|实习|项目|校园|技能|自我评价（无法识别则按原文命名）'),
       issues: z.array(
         z.object({
           type: z.string(),

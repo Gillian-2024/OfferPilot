@@ -17,11 +17,11 @@ router.get('/', (req, res) => {
     let items;
     if (type) {
       items = db.prepare(
-        'SELECT id, type, title, data, provider, model, created_at FROM history WHERE user_id = ? AND type = ? ORDER BY created_at DESC LIMIT 50'
+        'SELECT id, type, title, data, provider, model, project_id, created_at FROM history WHERE user_id = ? AND type = ? ORDER BY created_at DESC LIMIT 50'
       ).all(req.userId, type);
     } else {
       items = db.prepare(
-        'SELECT id, type, title, data, provider, model, created_at FROM history WHERE user_id = ? ORDER BY created_at DESC LIMIT 100'
+        'SELECT id, type, title, data, provider, model, project_id, created_at FROM history WHERE user_id = ? ORDER BY created_at DESC LIMIT 100'
       ).all(req.userId);
     }
 
@@ -34,6 +34,7 @@ router.get('/', (req, res) => {
       data: tryParse(item.data),
       provider: item.provider,
       model: item.model,
+      project_id: item.project_id,
     }));
 
     res.json({ items: parsed });
@@ -52,7 +53,7 @@ router.post('/', (req, res) => {
     if (Array.isArray(items)) {
       // 批量同步（首次登录迁移）
       const stmt = db.prepare(
-        'INSERT OR REPLACE INTO history (id, user_id, type, title, data, provider, model, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+        'INSERT OR REPLACE INTO history (id, user_id, type, title, data, provider, model, project_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
       );
       const tx = db.transaction((list) => {
         for (const item of list) {
@@ -65,6 +66,7 @@ router.post('/', (req, res) => {
             typeof item.data === 'string' ? item.data : JSON.stringify(item.data || {}),
             item.provider || null,
             item.model || null,
+            item.project_id || item.jobId || null,
             item.ts || Date.now()
           );
         }
@@ -77,7 +79,7 @@ router.post('/', (req, res) => {
       const id = nanoid(12);
       const now = Date.now();
       db.prepare(
-        'INSERT INTO history (id, user_id, type, title, data, provider, model, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+        'INSERT INTO history (id, user_id, type, title, data, provider, model, project_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
       ).run(
         id,
         req.userId,
@@ -86,6 +88,7 @@ router.post('/', (req, res) => {
         typeof data === 'string' ? data : JSON.stringify(data || {}),
         provider || null,
         model || null,
+        req.body.project_id || null,
         now
       );
       res.json({ id, createdAt: now });

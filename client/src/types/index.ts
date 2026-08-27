@@ -1,4 +1,4 @@
-export type Provider = 'claude' | 'openai' | 'google' | 'deepseek' | 'tongyi' | 'doubao' | 'moonshot' | 'zhipu' | 'minimax' | 'gateway';
+export type Provider = 'claude' | 'openai' | 'google' | 'deepseek' | 'tongyi' | 'doubao' | 'moonshot' | 'zhipu' | 'minimax';
 
 export interface Settings {
   provider?: Provider;
@@ -91,6 +91,7 @@ export interface ResumeResult {
     module: string;
     issues: { type: string; detail: string; severity: string }[];
   }[];
+  modules?: { name: string; content: string }[]; // step1 模块原文映射（P1-3 逐段改写带入原文用）
   differentiator: string;
   quick_wins: string[];
   positioning: string;

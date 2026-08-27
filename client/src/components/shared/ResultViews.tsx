@@ -1,12 +1,7 @@
-import { lazy, Suspense, useMemo } from 'react';
-import { Card, Empty, Alert, Tooltip, Spin } from 'antd';
+import { Card, Empty, Alert, Tooltip, Button } from 'antd';
+import { EditOutlined } from '@ant-design/icons';
 import { ScoreBadge } from './ScoreBadge';
 import { JDResult, ResumeResult } from '../../types';
-
-// 图表库体积大且只在有结果时渲染，拆异步 chunk 不进首屏
-const Radar = lazy(() =>
-  import('@ant-design/charts').then((m) => ({ default: m.Radar }))
-);
 
 /* ── 状态色约定（过 dataviz 校验：色盲可分 + 永不单独用色，必带文字/图标）──
    满足 ok=#1f7a4d · 部分 part=#d97706 · 缺失 miss=#a61b1b */
@@ -18,43 +13,10 @@ const rvTitle = (text: string, note?: string) => (
   </span>
 );
 
-/* 雷达图数据：由 requirement_gaps 状态聚合（服务端无维度子分，客户端派生）
-   口径：满足=1 · 部分=0.5 · 缺失=0，按维度分桶归一为百分制 */
-const DIM_ORDER = ['硬性要求', '软性素质', '筛选优先级', '关键词', '其他'];
-function bucketOf(dim: string) {
-  if (dim.includes('硬')) return '硬性要求';
-  if (dim.includes('软')) return '软性素质';
-  if (dim.includes('优先')) return '筛选优先级';
-  if (dim.includes('关键')) return '关键词';
-  return '其他';
-}
-function buildRadar(gaps: ResumeResult['requirement_gaps']) {
-  const buckets = new Map<string, { met: number; part: number; miss: number }>();
-  for (const g of gaps || []) {
-    const key = bucketOf(g.dimension || '');
-    const b = buckets.get(key) || { met: 0, part: 0, miss: 0 };
-    if (g.status.includes('缺失')) b.miss += 1;
-    else if (g.status.includes('部分')) b.part += 1;
-    else if (g.status.includes('满足')) b.met += 1;
-    else b.part += 1; // 未知措辞按中间态计
-    buckets.set(key, b);
-  }
-  return DIM_ORDER.filter((d) => buckets.has(d)).map((d) => {
-    const b = buckets.get(d)!;
-    const total = b.met + b.part + b.miss;
-    const score = Math.round(((b.met + 0.5 * b.part) / total) * 100);
-    return { dimension: d, score, detail: `满足度 ${score}% · ${b.met} 满足 / ${b.part} 部分 / ${b.miss} 缺失` };
-  });
-}
-
-const REDUCE_MOTION = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
 /* ────────────────────────── JD 拆解视图 ────────────────────────── */
 
 const tierKind = (t: string) => (t.toLowerCase().includes('must') ? 'must' : 'nice');
 const probKind = (p: string) => (p.includes('高') ? 'miss' : p.includes('低') ? 'neutral' : 'part');
-const cssToken = (name: string, fallback: string) =>
-  getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
 
 export function JDResultView({ data }: { data: JDResult | null }) {
   if (!data) return <Empty description="暂无拆解结果" />;
@@ -195,15 +157,10 @@ export function JDResultBrief({ data }: { data: JDResult | null }) {
 const gapKind = (status: string) => status.includes('缺失') ? 'miss' : status.includes('部分') ? 'part' : 'ok';
 const sevKind = (sev: string) => (sev === '高' ? 'miss' : sev === '中' ? 'part' : 'neutral');
 
-export function ResumeResultView({ data }: { data: ResumeResult | null }) {
-  const radarData = useMemo(() => buildRadar(data?.requirement_gaps || []), [data]);
+export function ResumeResultView({ data, onRewriteModule }: { data: ResumeResult | null; onRewriteModule?: (module: string, snippet?: string) => void }) {
   if (!data) return <Empty description="暂无拆解结果" />;
   const matched = data.keyword_hits?.matched || [];
   const missing = data.keyword_hits?.missing || [];
-  const showRadar = radarData.length >= 3;
-  const chartLine = cssToken('--color-primary-soft', '#24466e');
-  const chartGrid = cssToken('--color-border', '#c9d3e0');
-  const chartLabel = cssToken('--color-text-tertiary', '#6b7280');
 
   const gapRows = (data.requirement_gaps || []).map((g, i) => (
     <div key={i} className="rv-gap-row">
@@ -231,24 +188,8 @@ export function ResumeResultView({ data }: { data: ResumeResult | null }) {
         {data.differentiator && <div className="rv-diff"><span className="rv-diff-label">亮点</span>{data.differentiator}</div>}
       </Card>
 
-      {/* 雷达 + Gap */}
-      {showRadar ? (
-        <div className="rv-duo rv-duo--radar">
-          <Card size="small" className="rv-card" title={rvTitle('维度满足度')} >
-            <Suspense fallback={<Spin size="small" className="rv-chart-loading" />} >
-              <Radar data={radarData} xField="dimension" yField="score" height={260} autoFit animate={!REDUCE_MOTION}
-                scale={{ y: { domainMax: 100, tickCount: 5 } }}
-                axis={{ x: { grid:true, gridStroke:chartGrid, gridLineDash:[0,0], line:false, tick:false, label:true, labelAlign:'horizontal', labelAutoRotate:false, labelFill:chartLabel, labelFontSize:12 }, y: { grid:true, gridStroke:chartGrid, gridLineDash:[0,0], line:false, tick:false, label:false, zIndex:1 } }}
-                style={{ stroke:chartLine, lineWidth:2 }} area={{ style:{ fill:chartLine, fillOpacity:0.14 } }}
-                point={{ size:4, style:{ fill:chartLine, stroke:'#ffffff', lineWidth:2 } }}
-                tooltip={{ title:'dimension', items:[{ field:'detail', name:'构成' }] }} />
-            </Suspense>
-          </Card>
-          <Card size="small" className="rv-card" title={rvTitle('Gap 明细')} ><div className="rv-gap-list">{gapRows}</div></Card>
-        </div>
-      ) : (
-        <Card size="small" className="rv-card" title={rvTitle('Gap 明细')} ><div className="rv-gap-list">{gapRows}</div></Card>
-      )}
+      {/* Gap 明细 */}
+      <Card size="small" className="rv-card" title={rvTitle('Gap 明细')} ><div className="rv-gap-list">{gapRows}</div></Card>
 
       {/* 关键词命中 */}
       {(matched.length > 0 || missing.length > 0) && (
@@ -265,7 +206,18 @@ export function ResumeResultView({ data }: { data: ResumeResult | null }) {
         <Card size="small" className="rv-card" title={rvTitle('逐模块诊断')} >
           <div className="rv-module-list">
             {data.module_issues.map(m=><div key={m.module} className="rv-module">
-              <div className="rv-module-head">{m.module}<span className="rv-module-count">{m.issues.length} 项</span></div>
+              <div className="rv-module-head">{m.module}<span className="rv-module-count">{m.issues.length} 项</span>
+                {onRewriteModule && (
+                  <Button type="link" size="small" className="rv-module-rewrite" icon={<EditOutlined />} onClick={() => {
+                    const mm = (m.module || '').trim();
+                    // P1-3 修复：module_issues[].module 可能与 modules[].name 命名不一致（step3/4 曾无约束），先精确后模糊兜底
+                    const mod = data.modules?.find(x => x.name === mm) || data.modules?.find(x => mm.includes(x.name) || x.name.includes(mm));
+                    onRewriteModule(m.module, mod?.content);
+                  }}>
+                    改写这段
+                  </Button>
+                )}
+              </div>
               {m.issues.map((iss,i)=>(<div key={i} className="rv-issue">
                 <span className={`rv-sev rv-sev--${sevKind(iss.severity)}`}>{iss.severity}</span>
                 <span className="rv-issue-type">{iss.type}</span>

@@ -183,14 +183,6 @@ body {
   white-space: nowrap;
 }
 
-.strip-chevron {
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.5);
-  margin-left: auto;
-  transition: transform 0.2s;
-  flex-shrink: 0;
-}
-
 .strip-footer {
   padding: 8px 12px;
   font-size: 9px;
@@ -284,7 +276,7 @@ body {
 
 .tab-content {
   padding: clamp(8px, 2vw, 24px);
-  max-width: 1100px;
+  max-width: 1440px;
   margin: 0 auto;
   width: 100%;
 }
@@ -716,11 +708,6 @@ body {
 
 .rv-duo { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; align-items: stretch; }
 .rv-duo > .ant-card { height: 100%; }
-.rv-duo--radar { grid-template-columns: minmax(280px, 360px) minmax(0, 1fr); }
-.rv-duo--radar > .rv-card:first-child { display: flex; flex-direction: column; }
-.rv-duo--radar > .rv-card:first-child .ant-card-body { flex: 1; display: flex; flex-direction: column; }
-.rv-duo--radar > .rv-card:first-child .ant-card-body > div { display: flex; flex-direction: column; justify-content: center; }
-.rv-chart-loading { display: block; margin: 100px auto; }
 
 
 
@@ -835,8 +822,9 @@ body {
 /* 逐模块诊断 */
 .rv-module { padding: 5px 0; }
 .rv-module + .rv-module { border-top: none; }
-.rv-module-head { font-size: 13.5px; font-weight: 600; margin-bottom: 4px; }
+.rv-module-head { display: flex; align-items: center; gap: 6px; font-size: 13.5px; font-weight: 600; margin-bottom: 4px; }
 .rv-module-count { margin-left: 6px; font-size: 12px; font-weight: 400; color: var(--color-text-tertiary); }
+.rv-module-rewrite { margin-left: auto; height: auto; padding: 0; font-size: 12px; }
 .rv-issue { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; padding: 2px 0; font-size: 13px; }
 .rv-sev {
   flex-shrink: 0; display: inline-flex; padding: 0 7px; border-radius: 4px;
@@ -1016,6 +1004,7 @@ a:focus-visible,
 .fs-13 { font-size: 13px; }
 .icon-primary { color: var(--color-primary-text); }
 .icon-purple { color: var(--color-accent-purple); }
+.icon-gold { color: var(--color-gold-deep); }
 
 .step-icon--done { color: var(--color-status-ok); }
 .step-icon--active { color: var(--color-gold); }
@@ -1033,6 +1022,19 @@ a:focus-visible,
 .ant-tag.ir-role-tag { font-size: 10px; line-height: 16px; padding: 0 4px; margin: 0; border: none; background: var(--color-gold-light); color: var(--color-gold-deep); }
 .ir-sidebar-summary { margin: 0; font-size: 13px; line-height: 1.7; }
 .ir-share-alert { margin-top: 8px; border-radius: var(--radius-md); }
+.ir-archive-source { font-size: 11px; display: block; margin-bottom: 8px; }
+.ir-archive-body p { margin: 4px 0; font-size: 12px; line-height: 1.7; }
+.ir-archive-card { margin-top: 12px; }
+/* P1-2 我的记忆卡片：练过 chips + 复盘结论列表 */
+.ir-memory-card { margin-top: 12px; }
+.ir-memory-block { margin-top: 8px; }
+.ir-memory-block:first-child { margin-top: 0; }
+.ir-memory-label { font-size: 11px; color: var(--color-text-tertiary, #6b7280); margin-bottom: 4px; }
+.ir-memory-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.ir-memory-chip { font-size: 11px; line-height: 1; padding: 3px 8px; border-radius: 999px; background: var(--color-primary-light, #e8eef6); color: var(--color-primary-text, #14273f); white-space: nowrap; }
+.ir-memory-list { margin: 0; padding-left: 14px; }
+.ir-memory-list li { font-size: 12px; line-height: 1.7; color: var(--color-text-secondary, #4b5563); }
+.ir-wrapup-alert { margin: 12px 4px 0; }
 .icon-18 { font-size: 18px; }
 .interview-chat .ant-bubble-end .ant-avatar { background: var(--color-primary-gradient); }
 .interview-chat .ant-bubble-start .ant-avatar { background: linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-bg-subtle) 100%); color: var(--color-primary-soft); }
@@ -1061,6 +1063,17 @@ a:focus-visible,
 /* Layout */
 .mr-4 { margin-right: 4px; }
 .menu-user-name { font-weight: 600; }
+.job-chip {
+  font-style: normal;
+  font-size: 9px;
+  line-height: 1;
+  padding: 2px 5px;
+  border-radius: 3px;
+  background: rgba(74, 222, 128, 0.16);
+  color: #4ade80;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
 .app-tabs {
   min-width: 0 !important;
   flex-shrink: 1 !important;
@@ -1162,3 +1175,21 @@ a:focus-visible,
 .mb-8 { margin-bottom: 8px; }
 
 .score-num { font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+
+/* ── P2-3 诊断报告导出 PDF ──
+   导出态（.pdf-exporting 挂 <html>）：隐藏交互元素，卡片抹阴影转白底，避免截图残留 */
+.pdf-exporting .rv-module-rewrite,
+.pdf-exporting .ant-card-extra,
+.pdf-exporting .rv-card-extra { display: none !important; }
+.pdf-exporting .ant-card { background: #fff !important; box-shadow: none !important; }
+.pdf-exporting .step-detail-enter { background: #fff; }
+
+/* 面试对话/成长档案：离屏导出容器（默认渲染器整块截图，负偏移由 CanvasRenderer translate 补偿） */
+.pdf-export-report { position: fixed; left: -9999px; top: 0; width: 860px; background: #fff; padding: 24px; color: #1f2329; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; }
+.pdf-report-title { font-size: 20px; font-weight: 600; margin-bottom: 12px; }
+.pdf-report-meta { display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; color: #666; margin-bottom: 20px; }
+.pdf-qa { margin-bottom: 16px; }
+.pdf-qa-q { font-weight: 600; white-space: pre-wrap; margin-bottom: 6px; }
+.pdf-qa-a { white-space: pre-wrap; color: #333; }
+.pdf-section { margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e6eb; }
+.pdf-growth p { margin: 6px 0; white-space: pre-wrap; }

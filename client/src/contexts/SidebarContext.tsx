@@ -1,16 +1,13 @@
 import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
-
-type ExpandedSection = 'project-history' | null;
-type HistoryTab = 'tree' | 'history';
+import { getJobs, getActiveJobId, setActiveJob as persistActiveJob } from '../store/local';
+import type { JobContext } from '../store/local';
 
 interface SidebarContextValue {
-  // Expanded section (currently only 'project-history')
-  expandedSection: ExpandedSection;
-  setExpandedSection: (section: ExpandedSection) => void;
-
-  // History tab switching
-  historyTab: HistoryTab;
-  setHistoryTab: (tab: HistoryTab) => void;
+  // 求职岗位（多岗位上下文，P0-1）
+  jobs: JobContext[];
+  activeJobId: string | null;
+  setActiveJob: (id: string) => void;
+  refreshJobs: () => void;
 
   // Callbacks
   openSettings: () => void;
@@ -24,21 +21,26 @@ interface SidebarContextValue {
   openAuthModal: () => void;
   closeAuthModal: () => void;
   authModalOpen: boolean;
-
-  openNewProject: () => void;
-  closeNewProject: () => void;
-  newProjectModalOpen: boolean;
 }
 
 const SidebarContext = createContext<SidebarContextValue>(null!);
 
 export function SidebarProvider({ children }: { children: ReactNode }) {
-  const [expandedSection, setExpandedSection] = useState<ExpandedSection>(null);
-  const [historyTab, setHistoryTab] = useState<HistoryTab>('tree');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [newProjectModalOpen, setNewProjectModalOpen] = useState(false);
+  const [jobs, setJobs] = useState<JobContext[]>(() => getJobs());
+  const [activeJobId, setActiveJobIdState] = useState<string | null>(() => getActiveJobId());
+
+  const setActiveJob = useCallback((id: string) => {
+    persistActiveJob(id);
+    setActiveJobIdState(id);
+  }, []);
+
+  const refreshJobs = useCallback(() => {
+    setJobs(getJobs());
+    setActiveJobIdState(getActiveJobId());
+  }, []);
 
   const openSettings = useCallback(() => setSettingsOpen(true), []);
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
@@ -46,17 +48,13 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
   const closeInviteDialog = useCallback(() => setInviteDialogOpen(false), []);
   const openAuthModal = useCallback(() => setAuthModalOpen(true), []);
   const closeAuthModal = useCallback(() => setAuthModalOpen(false), []);
-  const openNewProject = useCallback(() => setNewProjectModalOpen(true), []);
-  const closeNewProject = useCallback(() => setNewProjectModalOpen(false), []);
 
   return (
     <SidebarContext.Provider value={{
-      expandedSection, setExpandedSection,
-      historyTab, setHistoryTab,
+      jobs, activeJobId, setActiveJob, refreshJobs,
       settingsOpen, openSettings, closeSettings,
       inviteDialogOpen, openInviteDialog, closeInviteDialog,
       authModalOpen, openAuthModal, closeAuthModal,
-      newProjectModalOpen, openNewProject, closeNewProject,
     }}>
       {children}
     </SidebarContext.Provider>

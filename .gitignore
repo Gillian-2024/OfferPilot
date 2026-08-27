@@ -21,3 +21,6 @@ client/vite.config.d.ts
 # Playwright 产物
 client/test-results/
 client/playwright-report/
+
+# 临时测试产物
+tmp/

@@ -76,6 +76,8 @@ export const api = {
     streamSSE('/api/analyze', { type: 'resume', text, jdProfile }, s),
   chat: (messages: any[], context: any, s: Settings, mode?: string) =>
     streamSSE('/api/chat', { messages, context, mode }, s),
+  consolidateGrowth: (messages: any[], context: any, s: Settings) =>
+    streamSSE('/api/growth', { messages, context }, s),
   rewrite: (messages: any[], s: Settings) => streamSSE('/api/rewrite', { messages }, s),
   selfEval: (messages: any[], s: Settings) => streamSSE('/api/rewrite', { messages, mode: 'self-eval' }, s),
   createShare: async (payload: { type: string; title: string; content: string }) => {
