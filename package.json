@@ -3,12 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "description": "应届生校招求职辅助 · JD拆解/简历拆解/面试复盘",
+  "type": "module",
   "scripts": {
     "dev": "concurrently -n server,client -c magenta,cyan \"npm:dev:server\" \"npm:dev:client\"",
     "dev:server": "cd server && npm run dev",
     "dev:client": "cd client && npm run dev",
     "install:all": "cd server && npm install && cd ../client && npm install",
-    "build": "cd client && npm run build"
+    "build": "cd client && npm run build",
+    "test": "cd server && node --test",
+    "check": "node scripts/harness-check.js"
   },
   "allowScripts": {
     "better-sqlite3": true
