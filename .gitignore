@@ -13,6 +13,10 @@ server/data/*.db-shm
 *.log
 .DS_Store
 
+# 加密知识库 bundle（push 前必须删除）
+.knowledge.enc
+bundle.json
+
 # tsc 编译产物
 *.tsbuildinfo
 client/vite.config.js

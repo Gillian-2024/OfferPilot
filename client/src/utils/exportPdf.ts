@@ -1,7 +1,7 @@
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 
-// 诊断报告导出 PDF（P2-3）：html2canvas 全量截图 + jsPDF A4 分页切片
+// 诊断报告导出 PDF / PNG（P2-3）：html2canvas 全量截图 + jsPDF A4 分页切片；一键保存 PNG 单张
 // 选型理由：报告含彩色 chip / 卡片 / 雷达，截图比打印样式可预期；用户已拍板不用 window.print
 
 /** 文件名净化：非法字符（含空白）→ _，去掉首尾 _，空则 unnamed */
@@ -136,6 +136,40 @@ export async function exportNodeToPdf(node: HTMLElement, filename: string, opts:
 
     doc.save(filename);
     return pages;
+  } finally {
+    if (exportClass) document.documentElement.classList.remove(exportClass);
+  }
+}
+
+/**
+ * DOM 节点 → PNG 单张高清截图。
+ * 使用与 PDF 相同的 color-mix / var() 兼容层（patchColor4InClone），确保所见即所得。
+ * 文件名格式：OfferPilot_{岗位}_{报告类型}_{YYYYMMDD}.png
+ */
+export async function exportNodeToPng(node: HTMLElement, filename: string, opts: ExportPdfOpts = {}): Promise<void> {
+  const { exportClass } = opts;
+  if (exportClass) document.documentElement.classList.add(exportClass);
+  try {
+    await document.fonts.ready;
+    await new Promise((r) => requestAnimationFrame(() => r(null)));
+
+    const canvas = await html2canvas(node, {
+      scale: 2,
+      backgroundColor: '#ffffff',
+      useCORS: true,
+      windowWidth: Math.max(window.innerWidth, node.scrollWidth + 48),
+      logging: false,
+      onclone: (_doc, element) => patchColor4InClone(element),
+    });
+
+    // canvas.toDataURL('image/png') 直接导出无损 PNG
+    const url = canvas.toDataURL('image/png');
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${filename.replace(/\.pdf$/, '')}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   } finally {
     if (exportClass) document.documentElement.classList.remove(exportClass);
   }

@@ -11,6 +11,8 @@ interface Props {
   onText: (t: string) => void;
   label?: string;
   accept?: string;
+  /** Called with the File object right before upload (for analytics). Optional. */
+  onUpload?: (file: File) => void;
 }
 
 // Supported formats shown in the upload button label text.
@@ -24,7 +26,7 @@ const FORMAT_LABELS: Record<string, string> = {
 // antd Dragger 的点击走 inputRef.click()（程序式 JS 调用），受管浏览器策略/扩展
 // 拦截程序式 .click() 时选框不开 → “点不动”。<label> 点击由浏览器在用户手势层
 // 触发文件选择器，不走程序式 .click()，绕开该拦截。复用 antd 既有类名保视觉一致。
-export default function FileUpload({ settings, onText, label, accept }: Props) {
+export default function FileUpload({ settings, onText, label, accept, onUpload }: Props) {
   const [text, setText] = useState('');
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
@@ -36,6 +38,7 @@ export default function FileUpload({ settings, onText, label, accept }: Props) {
   const handleUpload = async (file: File) => {
     setLoading(true);
     try {
+      if (onUpload) onUpload(file); // analytics hook, called before upload
       const res = await uploadFile(file, settings);
       setText(res.text);
       setName(res.name);

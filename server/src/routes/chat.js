@@ -3,8 +3,12 @@ import { streamText } from 'ai';
 import { getProvider } from '../providers/index.js';
 import { resolveConfig } from '../utils/config.js';
 import { initSSE, sendSSE, endSSE } from '../utils/sse.js';
-import { buildInterviewSystem, buildPrepSystem } from '../prompts/interview.js';
-import { REWRITE_SYSTEM, SELF_EVAL_SYSTEM } from '../prompts/resume.js';
+import { loadKnowledge } from '../knowledge-loader.js';
+import { track, trackUsage } from '../utils/analytics.js';
+
+const modules = await loadKnowledge();
+const { buildInterviewSystem, buildPrepSystem } = modules.interview;
+const { REWRITE_SYSTEM, SELF_EVAL_SYSTEM } = modules.resume;
 
 const router = express.Router();
 
@@ -36,10 +40,22 @@ router.post('/chat', async (req, res) => {
       sendSSE(res, { type: 'token', text: chunk });
     }
     endSSE(res);
+
+    // Log post-chat analytics
+    track(undefined, 'interview_chat_done', {
+      mode,
+      message_count: messages.length,
+      provider: cfg.provider,
+      model: cfg.model,
+    });
+    if (result.usage) {
+      trackUsage(undefined, `interview_${mode}`, result.usage, cfg.provider, cfg.model);
+    }
   } catch (e) {
     console.error('[chat] error:', e);
     sendSSE(res, { type: 'error', message: e.message || String(e) });
     endSSE(res);
+    track(undefined, 'error_api_fail', { endpoint: 'chat', status_code: 500, error_message: e.message, capability: `interview_${mode}` });
   }
 });
 
@@ -68,10 +84,21 @@ router.post('/rewrite', async (req, res) => {
       sendSSE(res, { type: 'token', text: chunk });
     }
     endSSE(res);
+
+    // Log post-rewrite analytics
+    track(undefined, `chat_${mode}_done`, {
+      message_count: messages.length,
+      provider: cfg.provider,
+      model: cfg.model,
+    });
+    if (result.usage) {
+      trackUsage(undefined, `chat_${mode}`, result.usage, cfg.provider, cfg.model);
+    }
   } catch (e) {
     console.error('[rewrite] error:', e);
     sendSSE(res, { type: 'error', message: e.message || String(e) });
     endSSE(res);
+    track(undefined, 'error_api_fail', { endpoint: 'rewrite', status_code: 500, error_message: e.message, capability: mode });
   }
 });
 

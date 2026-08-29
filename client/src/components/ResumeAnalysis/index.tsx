@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Button, Space, message, Card, Empty, Alert, Drawer, Input, Typography, Tag, Tooltip, Collapse } from 'antd';
+import { Button, Space, message, Card, Empty, Alert, Drawer, Input, Typography, Tag, Tooltip, Collapse, Dropdown } from 'antd';
 import {
   ThunderboltOutlined,
   ShareAltOutlined,
@@ -13,6 +13,8 @@ import {
   RedoOutlined,
   RightOutlined,
   FilePdfOutlined,
+  FileImageOutlined,
+  DownOutlined,
 } from '@ant-design/icons';
 import XMarkdown from '@ant-design/x-markdown';
 import FileUpload from '../shared/FileUpload';
@@ -20,9 +22,10 @@ import Steps from '../shared/HorizontalSteps';
 import { ResumeResultView, JDResultBrief } from '../shared/ResultViews';
 import { api } from '../../api/client';
 import { Settings, ResumeResult, SSEMessage } from '../../types';
-import { getJDResult, getResumeResult, getActiveJob, setResumeResult, setResumeSummary, getResumeSummary, addHistorySynced, getSelfEval, setSelfEval } from '../../store/local';
-import { exportNodeToPdf, reportFilename } from '../../utils/exportPdf';
+import { getJDResult, getResumeResult, getActiveJob, setResumeResult, setResumeSummary, getResumeSummary, addHistorySynced, getSelfEval, setSelfEval, recordModelResult } from '../../store/local';
+import { exportNodeToPdf, reportFilename, exportNodeToPng } from '../../utils/exportPdf';
 import { useSidebar } from '../../contexts/SidebarContext';
+import { track } from '../../utils/analytics';
 
 export default function ResumeAnalysis({ settings, onGotoJD }: { settings: Settings; onGotoJD?: () => void }) {
   const { activeJobId, refreshJobs } = useSidebar();
@@ -33,6 +36,7 @@ export default function ResumeAnalysis({ settings, onGotoJD }: { settings: Setti
   const [shareUrl, setShareUrl] = useState('');
   const [exporting, setExporting] = useState(false);
   const resultRef = useRef<HTMLDivElement>(null);
+  const uploadSource = useRef<'upload' | null>(null);
   // 切岗位 / 刷新后回读该岗位已存的简历诊断（P0 修复：结果区不再会话态丢失）
   useEffect(() => {
     setResult(getResumeResult());
@@ -63,6 +67,9 @@ export default function ResumeAnalysis({ settings, onGotoJD }: { settings: Setti
 
   const analyze = async () => {
     if (!text.trim()) return message.warning('请先上传或粘贴简历');
+    if (uploadSource.current !== 'upload') {
+      track('resume_analysis_start', { source: 'paste' });
+    }
     setLoading(true);
     setResult(null);
     setSteps([]);
@@ -74,6 +81,7 @@ export default function ResumeAnalysis({ settings, onGotoJD }: { settings: Setti
         else if (msg.type === 'result') {
           setResult(msg.data);
           setResumeResult(msg.data);
+          recordModelResult(msg.model || settings.model || '', true);
           setResumeSummary(text.slice(0, 500));
           refreshJobs();
           addHistorySynced('resume', {
@@ -86,16 +94,24 @@ export default function ResumeAnalysis({ settings, onGotoJD }: { settings: Setti
             jobId: activeJobId ?? undefined,
           });
           message.success(`拆解完成，已存入岗位「${getActiveJob()?.name || ''}」`);
-        } else if (msg.type === 'error') message.error(msg.message);
+          track('resume_analysis_done', { steps: steps.length, provider: msg.provider, model: msg.model });
+        } else if (msg.type === 'error') {
+          message.error(msg.message);
+          recordModelResult(settings.model || '', false);
+          track('error_client', { context: 'resume_analyze', message: msg.message });
+        }
       }
     } catch (e: any) {
       message.error(e.message);
+      recordModelResult(settings.model || '', false);
+      track('error_client', { context: 'resume_analyze', message: e.message });
     }
     setLoading(false);
   };
 
   const share = async () => {
     if (!result) return;
+    track('resume_share_click');
     const r = await api.createShare({
       type: 'resume',
       title: `简历拆解 · 匹配度 ${result.match_score}`,
@@ -103,10 +119,12 @@ export default function ResumeAnalysis({ settings, onGotoJD }: { settings: Setti
     });
     setShareUrl(`${location.origin}/share/${r.id}`);
     message.success('分享链接已生成');
+    track('resume_share_done', { url: `${location.origin}/share/${r.id}` });
   };
 
   // P2-3 导出 PDF：结果容器整块截图（导出态隐藏交互元素），A4 分页
   const exportPdf = async () => {
+    track('resume_pdf_export');
     const node = resultRef.current;
     if (!node || !result) return;
     setExporting(true);
@@ -114,8 +132,29 @@ export default function ResumeAnalysis({ settings, onGotoJD }: { settings: Setti
       const filename = reportFilename(getActiveJob()?.name || '未命名岗位', '简历拆解');
       await exportNodeToPdf(node, filename, { exportClass: 'pdf-exporting' });
       message.success('PDF 已导出');
+      track('resume_pdf_export_done');
     } catch (e: any) {
       message.error(`导出失败：${e?.message || e}`);
+      track('error_client', { context: 'resume_pdf_export', message: e.message || String(e) });
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  // P2-3 导出 PNG 高清截图：所见即所得，适合发朋友圈/小红书
+  const exportPng = async () => {
+    track('resume_png_export');
+    const node = resultRef.current;
+    if (!node || !result) return;
+    setExporting(true);
+    try {
+      const filename = reportFilename(getActiveJob()?.name || '未命名岗位', '简历拆解');
+      await exportNodeToPng(node, `${filename.replace(/\.pdf$/, '')}.png`, { exportClass: 'pdf-exporting' });
+      message.success('PNG 图片已导出');
+      track('resume_png_export_done');
+    } catch (e: any) {
+      message.error(`导出失败：${e?.message || e}`);
+      track('error_client', { context: 'resume_png_export', message: e.message || String(e) });
     } finally {
       setExporting(false);
     }
@@ -132,6 +171,7 @@ export default function ResumeAnalysis({ settings, onGotoJD }: { settings: Setti
     if (!rwText.trim()) return message.warning('请粘贴要改写的模块原文');
     setRwLoading(true);
     setRwOut('');
+    track('resume_rewrite_start', { module_snippet_length: rwText.length });
     const jdCtx = jdResult
       ? `目标岗位：${jdResult.job_profile || '—'}\n硬性要求：${JSON.stringify(jdResult.hard_requirements || {})}\n筛选优先级：${JSON.stringify(jdResult.screening_priority || [])}\n关键词：${(jdResult.keyword_list || []).join('、')}`
       : '未提供 JD（按通用应届生标准）';
@@ -150,12 +190,14 @@ export default function ResumeAnalysis({ settings, onGotoJD }: { settings: Setti
       message.error(e.message);
     }
     setRwLoading(false);
+    track('resume_rewrite_done', { output_length: rwOut.length });
   };
 
   const doSelfEval = async () => {
     if (!text.trim() && !result) return message.warning('请先拆解简历');
     setSeLoading(true);
     setSeOut('');
+    track('resume_self_eval_start');
     const jdCtx = jdResult
       ? `目标岗位：${jdResult.job_profile || '—'}\n硬性要求：${JSON.stringify(jdResult.hard_requirements || {})}\n筛选优先级：${JSON.stringify(jdResult.screening_priority || [])}\n关键词：${(jdResult.keyword_list || []).join('、')}`
       : '未提供 JD（按通用应届生标准）';
@@ -183,6 +225,7 @@ export default function ResumeAnalysis({ settings, onGotoJD }: { settings: Setti
       message.error(e.message);
     }
     setSeLoading(false);
+    track('resume_self_eval_done', { output_length: seOut.length });
   };
 
   const copySelfEval = () => {
@@ -259,7 +302,16 @@ export default function ResumeAnalysis({ settings, onGotoJD }: { settings: Setti
               上传 / 粘贴简历
             </Space>
           }>
-            <FileUpload settings={settings} onText={setText} label="点击或拖拽上传（PDF / Word / HTML / Markdown / TXT）" />
+            <FileUpload
+              settings={settings}
+              onText={setText}
+              label="点击或拖拽上传（PDF / Word / HTML / Markdown / TXT）"
+              onUpload={(file) => {
+                uploadSource.current = 'upload';
+                const ext = file.name.split('.').pop()?.toLowerCase() || '';
+                track('resume_analysis_start', { source: 'upload', file_type: ext, file_size_bytes: file.size });
+              }}
+            />
           </Card>
 
           {/* 分析步骤 — 横向排列 */}
@@ -313,17 +365,19 @@ export default function ResumeAnalysis({ settings, onGotoJD }: { settings: Setti
             >
               一键分享
             </Button>
-            <Tooltip title="导出当前拆解报告为 A4 PDF">
-              <Button
-                className="btn-share"
-                disabled={!result || exporting}
-                loading={exporting}
-                icon={<FilePdfOutlined />}
-                onClick={exportPdf}
-              >
-                导出 PDF
-              </Button>
-            </Tooltip>
+            <Dropdown menu={{ items: [
+              { key: 'pdf', label: '导出 PDF', icon: <FilePdfOutlined /> },
+              { key: 'png', label: '导出图片 (PNG)', icon: <FileImageOutlined /> },
+            ], onClick: (e) => {
+              if (e.key === 'pdf') exportPdf();
+              else if (e.key === 'png') exportPng();
+            }}} trigger={['click']}>
+              <Tooltip title="导出拆解报告为 PDF 或高清图片">
+                <Button className="btn-share" disabled={!result || exporting} loading={exporting}>
+                  导出 <DownOutlined />
+                </Button>
+              </Tooltip>
+            </Dropdown>
           </div>
 
           {/* 分享结果 */}

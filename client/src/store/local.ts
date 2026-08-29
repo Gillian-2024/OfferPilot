@@ -324,3 +324,30 @@ export function getSelfEval(jobId: string): string {
 export function setSelfEval(jobId: string, content: string) {
   localStorage.setItem(KEYS.selfEval(jobId), content);
 }
+
+// === LLM Quality Metrics (client-side, per model) ===
+const QUALITY_KEY = 'cjc:quality_metrics';
+
+interface QualityMetrics {
+  [modelKey: string]: { success: number; fail: number };
+}
+
+export function getQualityMetrics(): QualityMetrics {
+  try {
+    const raw = localStorage.getItem(QUALITY_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+export function recordModelResult(model: string, success: boolean) {
+  try {
+    const m = getQualityMetrics();
+    if (!m[model]) m[model] = { success: 0, fail: 0 };
+    m[model][success ? 'success' : 'fail'] += 1;
+    localStorage.setItem(QUALITY_KEY, JSON.stringify(m));
+  } catch {
+    // localStorage full or unavailable — silently ignore
+  }
+}

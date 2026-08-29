@@ -12,6 +12,7 @@ import historyRouter from './routes/history.js';
 import modelRouter from './routes/model.js';
 import invitesRouter from './routes/invites.js';
 import projectsRouter from './routes/projects.js';
+import analyticsRouter from './routes/analytics.js';
 import { getDb } from './db/index.js';
 
 const app = express();
@@ -32,6 +33,7 @@ app.use('/api', shareRouter);
 app.use('/api', modelRouter);
 app.use('/invites', invitesRouter);
 app.use('/projects', projectsRouter);
+app.use('/api/analytics', analyticsRouter);
 
 // 生产：托管前端构建产物
 const __dirname = path.dirname(fileURLToPath(import.meta.url));

@@ -24,10 +24,12 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Settings, SSEMessage } from '../../types';
 import FileUpload from '../shared/FileUpload';
 import { getJDProfile, getResumeSummary, getJDKeywords, getJDResult, getActiveJob, getGrowthPlan, setGrowthPlan, clearGrowthPlan, getUserMemory, clearUserMemory, accumulateMemory, getHistory, clearHistory, upsertHistory, deleteHistoryItemLocal, genId } from '../../store/local';
+import { recordModelResult } from '../../store/local';
 import type { GrowthPlan } from '../../store/local';
 import { JDResultBrief } from '../shared/ResultViews';
 import { exportNodeToPdf, reportFilename } from '../../utils/exportPdf';
 import { useSidebar } from '../../contexts/SidebarContext';
+import { track } from '../../utils/analytics';
 
 interface Msg {
   role: 'user' | 'assistant';
@@ -388,6 +390,7 @@ export default function InterviewReview({ settings, onGotoJD, viewMode = 'prep' 
     const finalContent = `${uploadPart}${content}${filterPart}`;
     if (!finalContent.trim() || loading) return;
     if (!activeIdRef.current) activeIdRef.current = genId();
+    track(`interview_${viewMode}_message_sent`, { content_length: content.length, has_upload_text: !!uploadText });
     const userMsg: Msg = { role: 'user', content: finalContent };
     const newMsgs = [...messages, userMsg];
     setMessages([...newMsgs, { role: 'assistant', content: '', streaming: true }]);
@@ -414,6 +417,7 @@ export default function InterviewReview({ settings, onGotoJD, viewMode = 'prep' 
       const finalMsgs: Msg[] = [...messages, userMsg, { role: 'assistant', content: acc, streaming: false }];
       setMessages(finalMsgs);
       persistSession(finalMsgs); // P1-1 完成即落盘，防切页丢尾部
+      track(`interview_${viewMode}_message_done`, { output_length: acc.length });
     } catch (e: any) {
       message.error(e.message);
       setMessages((s) => s.slice(0, -1));
@@ -423,6 +427,7 @@ export default function InterviewReview({ settings, onGotoJD, viewMode = 'prep' 
 
   const share = async () => {
     if (!messages.length) return;
+    track('interview_share_click');
     const md = messages
       .map((m) => `**${m.role === 'user' ? '我' : '领航员'}**：\n\n${m.content}`)
       .join('\n\n---\n\n');
@@ -430,35 +435,42 @@ export default function InterviewReview({ settings, onGotoJD, viewMode = 'prep' 
     const r = await api.createShare({ type: 'interview', title, content: md });
     setShareUrl(`${location.origin}/share/${r.id}`);
     message.success('分享链接已生成');
+    track('interview_share_done');
   };
 
   // P0-2：沉淀复盘结论 → 成长档案（一次性收敛，复用 analyze 的绕 tool_use 模式）
   const doArchive = async () => {
     if (!messages.length) return;
     setArchiving(true);
+    track('interview_archive_start', { message_count: messages.length });
     try {
       for await (const msg of api.consolidateGrowth(messages, context, settings) as AsyncGenerator<SSEMessage>) {
         if (msg.type === 'result') {
           // P1-2：practiced 从 growthPlan 剥离，仅进用户记忆累积，不污染存档
           const { practiced, ...rest } = msg.data;
           setGrowthPlan({ ...rest, sourceJob: jobName, updatedAt: Date.now() });
+          recordModelResult(msg.model || settings.model || '', true);
           accumulateMemory(practiced, rest.summary);
           setGrowthTick((t) => t + 1);
           setMemTick((t) => t + 1);
           setArchiveExpanded(true);
           message.success('已沉淀到成长档案，后续准备 / 复盘会自动参考');
+          track('interview_archive_done', { output_length: JSON.stringify(rest).length });
         } else if (msg.type === 'error') {
           message.error(msg.message);
+          recordModelResult(settings.model || '', false);
         }
       }
     } catch (e: any) {
       message.error(e.message);
+      recordModelResult(settings.model || '', false);
     }
     setArchiving(false);
   };
 
   // P2-3 导出面试对话摘要 PDF：隐藏容器整块截图（默认渲染器，样式表正常加载）
   const exportPdf = async () => {
+    track('interview_pdf_export', { view_mode: viewMode });
     const node = exportRef.current;
     if (!node || !messages.length) return;
     setExporting(true);
@@ -466,8 +478,10 @@ export default function InterviewReview({ settings, onGotoJD, viewMode = 'prep' 
       const filename = reportFilename(jobName || '未命名岗位', viewMode === 'prep' ? '面试准备' : '面试复盘');
       await exportNodeToPdf(node, filename, { exportClass: 'pdf-exporting' });
       message.success('PDF 已导出');
+      track('interview_pdf_export_done');
     } catch (e: any) {
       message.error(`导出失败：${e?.message || e}`);
+      track('error_client', { context: 'interview_pdf_export', message: e.message || String(e) });
     } finally {
       setExporting(false);
     }
@@ -475,6 +489,7 @@ export default function InterviewReview({ settings, onGotoJD, viewMode = 'prep' 
 
   // P2-3 导出成长档案 PDF（档案卡片独立下载）
   const exportGrowthPdf = async () => {
+    track('growth_archive_pdf_export');
     const node = growthExportRef.current;
     if (!node || !growthPlan) return;
     setGrowthExporting(true);
@@ -482,8 +497,10 @@ export default function InterviewReview({ settings, onGotoJD, viewMode = 'prep' 
       const filename = reportFilename(growthPlan.sourceJob || jobName || '未命名岗位', '成长档案');
       await exportNodeToPdf(node, filename, { exportClass: 'pdf-exporting' });
       message.success('成长档案已导出');
+      track('growth_archive_pdf_export_done');
     } catch (e: any) {
       message.error(`导出失败：${e?.message || e}`);
+      track('error_client', { context: 'growth_archive_pdf_export', message: e.message || String(e) });
     } finally {
       setGrowthExporting(false);
     }
@@ -563,6 +580,7 @@ export default function InterviewReview({ settings, onGotoJD, viewMode = 'prep' 
 
   const handlePromptClick = (info: { data: { key: string } }) => {
     const { key } = info.data;
+    track(`interview_${viewMode}_prompt_click`, { prompt_key: key });
     const promptMap: Record<string, string> = {
       simulate: '帮我想想还会问什么，基于我的岗位和简历出 3-5 个可能的追问题目（带考察点），不要给标准答案。',
       satisfaction: '请判断面试官对我的满意度，分析正面和负面信号。',
@@ -853,6 +871,10 @@ export default function InterviewReview({ settings, onGotoJD, viewMode = 'prep' 
                 settings={settings}
                 onText={setUploadText}
                 label="点击或拖拽上传（PDF / Word / HTML / Markdown / TXT）"
+                onUpload={(file) => {
+                  const ext = file.name.split('.').pop()?.toLowerCase() || '';
+                  track(`interview_${viewMode}_file_upload`, { file_type: ext, file_size_bytes: file.size });
+                }}
               />
             </Space>
           </Card>

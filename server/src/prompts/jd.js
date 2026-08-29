@@ -1,9 +1,5 @@
+// JD 拆解：4 节点分步链
 import { z } from 'zod';
-import { BASE_SYSTEM } from './base.js';
-
-// JD 拆解：4 节点分步链，generateText + schemaShape 注入 + zod 校验
-// （generateObject tool mode 对内网 reasoning 模型失效，走文本直出 + 手动 parse）
-// 每步接收上一步输出，逐步注入上下文
 
 const step1Schema = z.object({
   job_profile: z.string().describe('一句话岗位定位：什么岗位、解决什么问题'),

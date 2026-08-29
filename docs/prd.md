@@ -1,6 +1,6 @@
 # OfferPilot 领航员 · PRD v1
 
-> 状态：draft · 2026-08-23（2026-08-27 追加 BYOK 完美解法）
+> 状态：draft · 2026-08-23（2026-08-27 追加 BYOK + §10 待确认飞书已同步）
 > 性质：自用工具 + 简历项目；架构预留上线全栈，分享可用。
 > 现状（2026-08-23）：MVP 四能力端到端跑通 + 认证与历史持久化（本机 SQLite），Next.js + Supabase 迁移待启动。
 > BYOK 决策：用户自带 API Key，产品不托管模型推理。
@@ -86,9 +86,11 @@ BYOK 丢的是「模型选择」一个旋钮，不是「约束能力」全部。
 
 | 层 | 机制 | 目的 |
 |---|---|---|
-| **输入控制** | 用户内容套 `[user-content]...[/user-content]` 边界防 prompt injection；上下文超限检测，超 128k 截断+提示，不盲扔 | 防止模型被污染或截断 |
-| **输出控制** | SSE SSEResult 消费后走 JSON parse + validate，失败重试一次；校验不过放半成品 + 标注「该模型拆分深度不足」，不硬塞 | 守门员不让烂输出出门 |
-| **一致性管理** | 推荐模型分级引导（非裸 dropdown）；每次回答携带模型版本信息；成长档案记录质量轨迹 | 让用户选但要被引导 |
+| **输入控制** | 用户原始文本（JD/简历/对话）经 `wrapUserContent()` 包裹 `<user-content>...</user-content>` 边界标签，system prompt 铁律 #1 约束模型视作数据处理。已落盘 `server/src/utils/contentBoundary.js`。⚠️ 上下文超限截断（超 128k）延后实现 | 防止模型被污染 |
+| **输出控制** | `extractAndParse(text, schema, maxRetries=1)` 增加一次重试机制：首次失败后用更激进策略重新提取 JSON。已落盘 `server/src/utils/jsonExtract.js` | 守门员不让烂输出出门 |
+| **一致性管理** | 每次 SSE `result` 事件携带 `provider` + `model` 字段（已有）。客户端 `recordModelResult(model, success)` 记录质量轨迹到 localStorage。模型分级引导和设置面板增强延后 | 让用户选但要被引导 |
+
+> 实施备注 (2026-08-27): 标签格式从 `[user-content]` 改为 `<user-content>`（XML 风格），依据 OWASP Prompt Injection Prevention 最佳实践 — LLM 对角度括号边界的结构性认知优于方括号，且 `</user-content>` 提供显式闭合锚点。详见 impl-plan.md。
 
 ### 价值锚点
 

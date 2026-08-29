@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Button, Space, message, Card, Empty, Alert, Tag, Tooltip } from 'antd';
+import { Button, Space, message, Card, Empty, Alert, Tag, Tooltip, Dropdown } from 'antd';
 import {
   ThunderboltOutlined,
   ShareAltOutlined,
@@ -9,15 +9,18 @@ import {
   LoadingOutlined,
   FileSearchOutlined,
   FilePdfOutlined,
+  FileImageOutlined,
+  DownOutlined,
 } from '@ant-design/icons';
 import FileUpload from '../shared/FileUpload';
 import Steps from '../shared/HorizontalSteps';
 import { JDResultView } from '../shared/ResultViews';
 import { api } from '../../api/client';
 import { Settings, JDResult } from '../../types';
-import { getActiveJob, getJDResult, setJDResult, addHistorySynced } from '../../store/local';
-import { exportNodeToPdf, reportFilename } from '../../utils/exportPdf';
+import { getActiveJob, getJDResult, setJDResult, addHistorySynced, recordModelResult } from '../../store/local';
+import { exportNodeToPdf, reportFilename, exportNodeToPng } from '../../utils/exportPdf';
 import { useSidebar } from '../../contexts/SidebarContext';
+import { track } from '../../utils/analytics';
 
 export default function JDAnalysis({ settings, onGotoResume }: { settings: Settings; onGotoResume?: () => void }) {
   const { activeJobId, refreshJobs } = useSidebar();
@@ -28,13 +31,14 @@ export default function JDAnalysis({ settings, onGotoResume }: { settings: Setti
   const [shareUrl, setShareUrl] = useState('');
   const [exporting, setExporting] = useState(false);
   const resultRef = useRef<HTMLDivElement>(null);
+  const uploadSource = useRef<'upload' | null>(null);
   // 切岗位 / 刷新后回读该岗位已存的 JD 拆解（P0 修复：结果区不再会话态丢失）
   useEffect(() => {
     setResult(getJDResult());
   }, [activeJobId]);
-
   // P2-3 导出 PDF：结果容器整块截图（导出态隐藏交互元素），A4 分页
   const exportPdf = async () => {
+    track('jd_pdf_export');
     const node = resultRef.current;
     if (!node || !result) return;
     setExporting(true);
@@ -42,8 +46,29 @@ export default function JDAnalysis({ settings, onGotoResume }: { settings: Setti
       const filename = reportFilename(getActiveJob()?.name || '未命名岗位', 'JD拆解');
       await exportNodeToPdf(node, filename, { exportClass: 'pdf-exporting' });
       message.success('PDF 已导出');
+      track('jd_pdf_export_done');
     } catch (e: any) {
       message.error(`导出失败：${e?.message || e}`);
+      track('error_client', { context: 'jd_pdf_export', message: e.message || String(e) });
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  // P2-3 导出 PNG 高清截图：所见即所得，适合发朋友圈/小红书
+  const exportPng = async () => {
+    track('jd_png_export');
+    const node = resultRef.current;
+    if (!node || !result) return;
+    setExporting(true);
+    try {
+      const filename = reportFilename(getActiveJob()?.name || '未命名岗位', 'JD拆解');
+      await exportNodeToPng(node, `${filename.replace(/\.pdf$/, '')}.png`, { exportClass: 'pdf-exporting' });
+      message.success('PNG 图片已导出');
+      track('jd_png_export_done');
+    } catch (e: any) {
+      message.error(`导出失败：${e?.message || e}`);
+      track('error_client', { context: 'jd_png_export', message: e.message || String(e) });
     } finally {
       setExporting(false);
     }
@@ -51,6 +76,10 @@ export default function JDAnalysis({ settings, onGotoResume }: { settings: Setti
 
   const analyze = async () => {
     if (!text.trim()) return message.warning('请先上传或粘贴 JD');
+    if (uploadSource.current !== 'upload') {
+      // Only track start for paste uploads; file uploads already fired jd_analysis_start in onUpload
+      track('jd_analysis_start', { source: 'paste' });
+    }
     setLoading(true);
     setResult(null);
     setSteps([]);
@@ -62,6 +91,7 @@ export default function JDAnalysis({ settings, onGotoResume }: { settings: Setti
         else if (msg.type === 'result') {
           setResult(msg.data);
           setJDResult(msg.data);
+          recordModelResult(msg.model || settings.model || '', true);
           refreshJobs();
           addHistorySynced('jd', {
             id: Date.now().toString(),
@@ -74,16 +104,25 @@ export default function JDAnalysis({ settings, onGotoResume }: { settings: Setti
           });
           const jobName = getActiveJob()?.name || '';
           message.success(`拆解完成，已存入岗位「${jobName}」`);
-        } else if (msg.type === 'error') message.error(msg.message);
+          track('jd_analysis_done', { steps: steps.length, provider: msg.provider, model: msg.model });
+        } else if (msg.type === 'error') {
+          message.error(msg.message);
+          recordModelResult(settings.model || '', false);
+          track('error_client', { context: 'jd_analyze', message: msg.message });
+        }
       }
     } catch (e: any) {
       message.error(e.message);
+      recordModelResult(settings.model || '', false);
+      track('error_client', { context: 'jd_analyze', message: e.message });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const share = async () => {
     if (!result) return;
+    track('jd_share_click');
     const r = await api.createShare({
       type: 'jd',
       title: `JD拆解 · ${result.job_type || ''}`,
@@ -91,6 +130,13 @@ export default function JDAnalysis({ settings, onGotoResume }: { settings: Setti
     });
     setShareUrl(`${location.origin}/share/${r.id}`);
     message.success('分享链接已生成');
+    track('jd_share_done', { url: `${location.origin}/share/${r.id}` });
+  };
+
+  // P2-3 导出下拉菜单点击处理
+  const handleExportMenuClick = (e: { key: string }) => {
+    if (e.key === 'pdf') exportPdf();
+    else if (e.key === 'png') exportPng();
   };
 
   const activeIdx = steps.findIndex((st) => !st.done);
@@ -106,7 +152,15 @@ export default function JDAnalysis({ settings, onGotoResume }: { settings: Setti
           <Tag color="default" bordered={false} style={{ fontSize: '10px', opacity: 0.65 }}>温馨提示：JD 即职位描述 + 职位要求</Tag>
         </Space>
       }>
-        <FileUpload settings={settings} onText={setText} label="点击或拖拽上传（PDF / Word / HTML / Markdown / TXT）" />
+        <FileUpload
+          settings={settings}
+          onText={setText}
+          label="点击或拖拽上传（PDF / Word / HTML / Markdown / TXT）"
+          onUpload={(file) => {
+            const ext = file.name.split('.').pop()?.toLowerCase() || '';
+            track('jd_analysis_start', { source: 'upload', file_type: ext, file_size_bytes: file.size });
+          }}
+        />
       </Card>
 
       {/* 分析步骤 — 横向排列 */}
@@ -144,17 +198,16 @@ export default function JDAnalysis({ settings, onGotoResume }: { settings: Setti
             一键分享
           </Button>
         </Tooltip>
-        <Tooltip title="导出当前拆解报告为 A4 PDF">
-          <Button
-            className="btn-share"
-            disabled={!result || exporting}
-            loading={exporting}
-            icon={<FilePdfOutlined />}
-            onClick={exportPdf}
-          >
-            导出 PDF
-          </Button>
-        </Tooltip>
+        <Dropdown menu={{ items: [
+          { key: 'pdf', label: '导出 PDF', icon: <FilePdfOutlined /> },
+          { key: 'png', label: '导出图片 (PNG)', icon: <FileImageOutlined /> },
+        ], onClick: handleExportMenuClick }} trigger={['click']}>
+          <Tooltip title="导出拆解报告为 PDF 或高清图片">
+            <Button className="btn-share" disabled={!result || exporting} loading={exporting}>
+              导出 <DownOutlined />
+            </Button>
+          </Tooltip>
+        </Dropdown>
       </div>
 
       {/* 分享结果 */}

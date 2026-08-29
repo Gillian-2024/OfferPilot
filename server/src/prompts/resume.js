@@ -1,9 +1,5 @@
-import { z } from 'zod';
-import { BASE_SYSTEM } from './base.js';
-
 // 简历拆解：4 节点分步链
-// 核心是「对照 JD」——简历拆解不是独立评简历，而是对照 JD 拆解结果逐维度 gap 分析
-// jdProfile = JD 拆解完整结果（对照基准），null 时降级为通用应届生标准
+import { z } from 'zod';
 
 const step1Schema = z.object({
   modules: z.array(
@@ -109,7 +105,6 @@ export const REWRITE_SYSTEM = `${BASE_SYSTEM}
 铁律：优化表达不编造经历；数据存疑标 [需本人确认]；锚定目标 JD，不做通用美化。`;
 
 // 自我评价生成：基于 JD + 简历，输出针对性自我评价
-// 来自用户真实 prompt："结合简历和意向岗位，写针对性自我评价（500字，总分总，3-5 能力点）"
 export const SELF_EVAL_SYSTEM = `${BASE_SYSTEM}
 
 当前任务：生成针对性自我评价。基于用户的简历和目标岗位，输出一段可直接用于简历的自我评价。

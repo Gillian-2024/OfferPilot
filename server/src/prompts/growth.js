@@ -1,8 +1,5 @@
+// 面试复盘收敛 → 成长档案
 import { z } from 'zod';
-import { BASE_SYSTEM } from './base.js';
-
-// 面试复盘收敛 → 成长档案（P0-2 复盘闭环）
-// 输入：一次面试复盘的完整对话 + 上下文；输出：跨面试沉淀的短板与改进项
 
 export const growthSchema = z.object({
   knowledge_gaps: z.array(z.string()).describe('最值得补的知识点，2-4 条，具体到可查证'),

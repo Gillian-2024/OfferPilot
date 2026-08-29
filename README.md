@@ -40,7 +40,7 @@ OfferPilot/
 │   └── src/
 │       ├── index.js        # Express 入口
 │       ├── providers/      # 多模型 Provider 工厂（AI SDK 统一）
-│       ├── parsers/        # 文件解析（PDF/Word/HTML）
+│       ├── parsers/        # 文件解析（PDF/Word/HTML/TXT/Markdown）
 │       ├── prompts/        # 分步 prompt 链 + zod schema
 │       │   ├── base.js     # 共享 System 底座（AI 策略 PM 人设）
 │       │   ├── jd.js       # JD 拆解 3 节点
@@ -106,6 +106,14 @@ npm run dev
 - 🟠 模型配置出错了 —— 填了但用不了（Key 错 / 网关不通 / 配额不足）
 
 探测走 `POST /api/model/check`：1-token 最小调用 + 15s 超时；启动与保存设置后自动重探。标签可点击直达「模型配置」面板，hover 显示具体错误。
+
+## 硬约束（不可违背）
+
+- **知识库隔离**：所有路由必须通过 `knowledge-loader.js` 加载提示词，禁止直接 import `prompts/*.js`。
+  - 验证：`node scripts/test-knowledge-loader.js`（自动检查 + 导出完整性校验）
+  - 或：`grep -r "from '../prompts/" server/src/routes/` → 必须空输出
+- **多格式上传**：`/api/upload` 支持 PDF、Word(.docx)、HTML、Markdown(.md)、TXT 五种格式解析。
+  - 验证：`node scripts/test-multi-format.js`（5 格式提取 + MIME→extension 回退）
 
 ## JD ↔ 简历 对照（核心关系）
 

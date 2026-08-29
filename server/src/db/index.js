@@ -80,6 +80,29 @@ export function getDb() {
       ON invites(user_id);
   `);
 
+  // Analytics events — product tracking infrastructure
+  _db.exec(`
+    CREATE TABLE IF NOT EXISTS analytics_events (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      device_id   TEXT NOT NULL DEFAULT '',
+      user_id     TEXT REFERENCES users(id) ON DELETE SET NULL,
+      event       TEXT NOT NULL,
+      path        TEXT,
+      extra       TEXT NOT NULL DEFAULT '{}',
+      ts          INTEGER NOT NULL,
+      ua          TEXT,
+      screen      TEXT,
+      created_at  INTEGER NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_analytics_device_ts
+      ON analytics_events(device_id, ts DESC);
+    CREATE INDEX IF NOT EXISTS idx_analytics_event_ts
+      ON analytics_events(event, ts DESC);
+    CREATE INDEX IF NOT EXISTS idx_analytics_extra
+      ON analytics_events(extra);
+  `);
+
   // Safe ALTER: ignore if column already exists (idempotent across restarts)
   try { _db.exec(`ALTER TABLE history ADD COLUMN project_id TEXT REFERENCES projects(id) ON DELETE SET NULL`); } catch {}
 

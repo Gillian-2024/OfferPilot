@@ -11,6 +11,7 @@ import Sidebar from '../Sidebar';
 import JDAnalysis from '../JDAnalysis';
 import ResumeAnalysis from '../ResumeAnalysis';
 import InterviewReview from '../InterviewReview';
+import { track } from '../../utils/analytics';
 
 export default function Layout() {
   const [settings, setSettingsState] = useState(getSettings);
@@ -98,7 +99,7 @@ export default function Layout() {
         <Tabs
           items={items}
           activeKey={activeKey}
-          onChange={setActiveKey}
+          onChange={(key) => { track('tab_switch', { from_tab: activeKey, to_tab: key }); setActiveKey(key); }}
           size="large"
           className="app-tabs"
         />
