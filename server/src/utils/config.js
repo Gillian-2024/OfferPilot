@@ -54,13 +54,17 @@ const ENV_PROFILES = {
 };
 
 // 从请求解析最终模型配置：header 透传 > .env 默认
+// BYOK 全有或全无：仅当客户端自带 x-api-key 时才信任 x-base-url 自定义;
+// 否则一律走服务端 profile 的 baseUrl——防止攻击者只传 x-base-url,
+// 把服务端自己的 API Key 发送到其控制的域名(密钥走私)
 export function resolveConfig(req) {
   const provider = req?.header('x-provider') || process.env.DEFAULT_PROVIDER || 'openai';
   const profile = ENV_PROFILES[provider] || {};
+  const byokKey = req?.header('x-api-key');
   return {
     provider,
-    apiKey: req?.header('x-api-key') || profile.apiKey || '',
-    baseUrl: req?.header('x-base-url') || profile.baseUrl,
+    apiKey: byokKey || profile.apiKey || '',
+    baseUrl: byokKey ? req?.header('x-base-url') || profile.baseUrl : profile.baseUrl,
     model: req?.header('x-model') || profile.model,
   };
 }

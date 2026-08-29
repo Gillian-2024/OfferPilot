@@ -259,6 +259,7 @@ export default function InterviewReview({ settings, onGotoJD, viewMode = 'prep' 
       for await (const msg of api.chat(
         newMsgs.map((m) => ({ role: m.role, content: m.content })),
         { ...context, interviewRound: round, interviewDuration: duration }, settings, viewMode,
+        activeIdRef.current || undefined,
       ) as AsyncGenerator<SSEMessage>) {
         if (msg.type === 'token') {
           acc += msg.text;
@@ -402,6 +403,7 @@ export default function InterviewReview({ settings, onGotoJD, viewMode = 'prep' 
       for await (const msg of api.chat(
         newMsgs.map((m) => ({ role: m.role, content: m.content })),
         { ...context, interviewRound: round, interviewDuration: duration }, settings, viewMode,
+        activeIdRef.current || undefined,
       ) as AsyncGenerator<SSEMessage>) {
         if (msg.type === 'token') {
           acc += msg.text;

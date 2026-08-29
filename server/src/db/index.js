@@ -5,9 +5,15 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DB_DIR = path.resolve(__dirname, '../../data');
-const DB_PATH = path.join(DB_DIR, 'offer-pilot.db');
+// CJC_DB_PATH 测试钩子：测试进程设环境变量走临时 DB 文件，不碰开发库
+const DB_PATH = process.env.CJC_DB_PATH
+  ? path.resolve(process.env.CJC_DB_PATH)
+  : path.join(DB_DIR, 'offer-pilot.db');
 
 let _db;
+// 缓存 prepared statement,复用而非每次 prepare——better-sqlite3 瞬时 statement
+// 被 GC 回收时析构会触发 RemoveEnvironmentCleanupHook 断言 (Node 24 兼容 bug)
+const _stmts = new Map();
 
 export function getDb() {
   if (_db) return _db;
@@ -107,4 +113,17 @@ export function getDb() {
   try { _db.exec(`ALTER TABLE history ADD COLUMN project_id TEXT REFERENCES projects(id) ON DELETE SET NULL`); } catch {}
 
   return _db;
+}
+
+// 复用同一 SQL 的 prepared statement,避免每次调用 prepare().run() 产生瞬时
+// Statement 对象——瞬时 statement 被 GC 回收时可能触发 better-sqlite3 + Node 24
+// 的 RemoveEnvironmentCleanupHook 断言崩溃 (Statement::~Statement)
+export function getStatement(sql) {
+  const db = getDb();
+  let stmt = _stmts.get(sql);
+  if (!stmt) {
+    stmt = db.prepare(sql);
+    _stmts.set(sql, stmt);
+  }
+  return stmt;
 }

@@ -52,8 +52,16 @@ router.post('/', (req, res) => {
 
     if (Array.isArray(items)) {
       // 批量同步（首次登录迁移）
+      // 归属条件 upsert：id 冲突且属于当前用户 → 更新内容（与客户端同 id 收敛）;
+      // 属于其他用户 → WHERE 不命中,整行跳过,绝不覆盖他人记录;不存在 → 插入
       const stmt = db.prepare(
-        'INSERT OR REPLACE INTO history (id, user_id, type, title, data, provider, model, project_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+        `INSERT INTO history (id, user_id, type, title, data, provider, model, project_id, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(id) DO UPDATE SET
+           type = excluded.type, title = excluded.title, data = excluded.data,
+           provider = excluded.provider, model = excluded.model,
+           project_id = excluded.project_id, created_at = excluded.created_at
+         WHERE history.user_id = excluded.user_id`
       );
       const tx = db.transaction((list) => {
         for (const item of list) {

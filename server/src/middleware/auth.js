@@ -1,8 +1,11 @@
+import 'dotenv/config';
 import { SignJWT, jwtVerify } from 'jose';
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'cjc-dev-secret-change-in-production'
-);
+// 无 JWT_SECRET 直接启动失败——明文兜底密钥等于公开密钥，任何人可伪造任意用户的 token
+if (!process.env.JWT_SECRET) {
+  throw new Error('[auth] 缺少 JWT_SECRET：请在 .env 配置随机密钥（生成：openssl rand -hex 32）');
+}
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
 const JWT_EXPIRES = '7d';
 
 export async function signToken(userId, username) {

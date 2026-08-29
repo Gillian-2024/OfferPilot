@@ -1,6 +1,6 @@
 import express from 'express';
-import cors from 'cors';
 import path from 'path';
+import rateLimit from 'express-rate-limit';
 import { fileURLToPath } from 'url';
 import analyzeRouter from './routes/analyze.js';
 import chatRouter from './routes/chat.js';
@@ -16,8 +16,30 @@ import analyticsRouter from './routes/analytics.js';
 import { getDb } from './db/index.js';
 
 const app = express();
-app.use(cors());
+// 不开 CORS：开发走 vite 代理(5173→8787)、生产同源托管 client/dist,无任何跨域合法流量。
+// 不挂 cors() 则浏览器直接拦截跨源读取,杜绝第三方站点跨域调本 API。
+// 将来若新增独立前端域名,再加 cors 白名单(仅允许该 origin),禁止 origin: true 全放。
 app.use(express.json({ limit: '10mb' }));
+
+// 限流：全站 API 兜底 + 登录/注册严限（防撞库刷注册）
+// 注：若将来部署到反向代理（nginx/云平台）后面，需加 app.set('trust proxy', 1)，否则所有用户共享代理 IP 桶
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 300,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: { error: '请求过于频繁，请稍后再试' },
+});
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 30,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: { error: '尝试过于频繁，请 15 分钟后再试' },
+});
+app.use('/api', apiLimiter);
+app.post('/api/auth/login', authLimiter);
+app.post('/api/auth/register', authLimiter);
 
 // 初始化数据库
 getDb();
