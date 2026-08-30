@@ -6,6 +6,7 @@ import { initSSE, sendSSE, endSSE } from '../utils/sse.js';
 import { loadKnowledge } from '../knowledge-loader.js';
 import { wrapUserContent } from '../utils/contentBoundary.js';
 import { track, trackUsage } from '../utils/analytics.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const modules = await loadKnowledge();
 const { buildJDSteps } = modules.jd;
@@ -15,7 +16,7 @@ const router = express.Router();
 
 // JD/简历拆解：分步链，SSE 推送 step 进度 + 最终 result
 // body: { type: 'jd'|'resume', text, jdProfile?: object（对照基准=完整 JD 拆解结果）, jdKeywords?: string[]（降级用） }
-router.post('/analyze', async (req, res) => {
+router.post('/analyze', requireAuth, async (req, res) => {
   const { type, text, jdKeywords = [], jdProfile = null } = req.body;
   if (!text || !text.trim()) {
     return res.status(400).json({ error: '缺少待分析文本 text' });

@@ -6,6 +6,7 @@ import { initSSE, sendSSE, endSSE } from '../utils/sse.js';
 import { loadKnowledge } from '../knowledge-loader.js';
 import { wrapUserContent } from '../utils/contentBoundary.js';
 import { track, trackUsage } from '../utils/analytics.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const modules = await loadKnowledge();
 const { buildGrowthSystem, growthSchema } = modules.growth;
@@ -15,7 +16,7 @@ const router = express.Router();
 // 复盘结论沉淀 → 成长档案
 // 一次性 generateText + schema 校验（复用 analyze 的绕 tool_use 模式，SSE 推 result）
 // body: { messages, context? }
-router.post('/growth', async (req, res) => {
+router.post('/growth', requireAuth, async (req, res) => {
   const { messages = [], context = {} } = req.body;
   if (!messages.length) {
     return res.status(400).json({ error: '缺少 messages' });

@@ -5,7 +5,7 @@ import { getModel, failSSE } from '../harness/run.js';
 import { initSSE, sendSSE, endSSE } from '../utils/sse.js';
 import { loadKnowledge } from '../knowledge-loader.js';
 import { track, trackUsage } from '../utils/analytics.js';
-import { optionalAuth } from '../middleware/auth.js';
+import { requireAuth } from '../middleware/auth.js';
 import { getStatement } from '../db/index.js';
 import { wrapUserContent } from '../utils/contentBoundary.js';
 
@@ -14,9 +14,6 @@ const { buildInterviewSystem, buildPrepSystem } = modules.interview;
 const { REWRITE_SYSTEM, SELF_EVAL_SYSTEM } = modules.resume;
 
 const router = express.Router();
-
-// 洞 2:chat/rewrite 走可选鉴权——登录态拿到 userId 以便服务端兜底落库,匿名照常可用
-router.use(optionalAuth);
 
 // 洞 2 兜底:流式成功结束后,登录态强制写一条 history(与客户端 debounce 同 id OR-REPLACE 收敛)
 function persistChatHistory({ userId, id, type, title, data, provider, model }) {
@@ -39,7 +36,10 @@ function chatTitle(messages) {
 
 // 面试对话（复盘 + 准备两种模式）：streamText 逐字流式
 // body: { messages, context?, mode?: 'review' | 'prep', sessionId? }
-router.post('/chat', async (req, res) => {
+// 对外开放:需登录——LLM 调用走服务端 key,匿名开放等于成本滥用敞口;登录态同时拿到 userId 供兜底落库
+// 注意按路由挂 requireAuth,不用 router.use:本 router 挂在共享 /api 前缀上,
+// router.use 会拦住所有进入该前缀的请求(包括后面 router 的公开端点)
+router.post('/chat', requireAuth, async (req, res) => {
   const { messages = [], context = {}, mode = 'review', sessionId } = req.body;
   if (!messages.length) {
     return res.status(400).json({ error: '缺少 messages' });
@@ -103,7 +103,7 @@ router.post('/chat', async (req, res) => {
 // 简历改写 + 自我评价生成：同样 streamText
 // body: { messages: [{role, content}], mode?: 'rewrite' | 'self-eval', sessionId? }
 const SYSTEM_MAP = { rewrite: REWRITE_SYSTEM, 'self-eval': SELF_EVAL_SYSTEM };
-router.post('/rewrite', async (req, res) => {
+router.post('/rewrite', requireAuth, async (req, res) => {
   const { messages = [], mode = 'rewrite', sessionId } = req.body;
   if (!messages.length) {
     return res.status(400).json({ error: '缺少 messages' });

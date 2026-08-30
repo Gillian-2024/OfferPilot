@@ -1,6 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import { parseFile } from '../parsers/index.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -11,7 +12,7 @@ const upload = multer({
 });
 
 // body: multipart/form-data, field: file
-router.post('/upload', upload.single('file'), async (req, res) => {
+router.post('/upload', requireAuth, upload.single('file'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: '缺少 file 字段' });
   }

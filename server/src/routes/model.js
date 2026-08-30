@@ -2,6 +2,7 @@ import express from 'express';
 import { generateText } from 'ai';
 import { getProvider } from '../providers/index.js';
 import { resolveConfig } from '../utils/config.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -14,7 +15,7 @@ function shortError(e) {
 
 // 模型配置探测：用 1-token 最小调用验证 API Key / 网关 / 配额 / 模型名是否真的可用
 // 返回 { status: 'missing' | 'ok' | 'error', error?, provider?, model? }
-router.post('/model/check', async (req, res) => {
+router.post('/model/check', requireAuth, async (req, res) => {
   const cfg = resolveConfig(req);
   if (!cfg.apiKey) {
     return res.json({ status: 'missing' });
