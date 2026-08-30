@@ -1,4 +1,9 @@
-import {
+import { createRequire } from 'node:module';
+
+// 修复：schema 由 knowledge-loader（eval 模式）用 CJS zod 构造，
+// 此处若用 ESM `import ... from 'zod'` 会拿到另一套 zod 类（dual-instance），
+// 所有 instanceof 判定失效 → 骨架退化成 "string"。改用同实例的 CJS zod。
+const {
   ZodObject,
   ZodArray,
   ZodString,
@@ -6,7 +11,7 @@ import {
   ZodBoolean,
   ZodOptional,
   ZodNullable,
-} from 'zod';
+} = createRequire(import.meta.url)('zod');
 
 // 把 zod schema 递归转成「可读 JSON 骨架文本」注入 prompt，
 // 让模型在不依赖 tool_use 的情况下也能输出字段名/嵌套/类型都对的 JSON。
