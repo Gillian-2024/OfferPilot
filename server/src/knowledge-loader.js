@@ -153,19 +153,17 @@ function evalModule(source, provided) {
   }
 }
 
-async function loadFromSource() {
+async function buildModules(getSource) {
   const order = ['base.js', 'jd.js', 'resume.js', 'interview.js', 'growth.js'];
 
-  // Flat namespace of known exported names/values — same as build-knowledge.js knownVals
+  // Flat namespace of known exported names/values
   const knownVals = {};
   // Module grouping for final output structure
   const modules = {};
 
   for (const file of order) {
-    const filePath = join(PROMPTS_DIR, file);
-    if (!existsSync(filePath)) continue;
-
-    const content = readFileSync(filePath, 'utf8');
+    const source = getSource(file);
+    if (!source) continue;
 
     // Build provided{} from knownVals for this file
     const prov = {};
@@ -173,7 +171,7 @@ async function loadFromSource() {
       if (v !== undefined && !(k in prov)) prov[k] = v;
     }
 
-    const modExports = evalModule(content, prov);
+    const modExports = evalModule(source, prov);
     const moduleName = file.replace(/\.js$/, '');
     modules[moduleName] = modExports;
 
@@ -200,7 +198,10 @@ export async function loadKnowledge() {
   const key = process.env.KNOWLEDGE_KEY;
   if (!key) {
     console.log('[knowledge-loader] Development mode — loading from source files');
-    cache = await loadFromSource();
+    cache = await buildModules((file) => {
+      const p = join(PROMPTS_DIR, file);
+      return existsSync(p) ? readFileSync(p, 'utf8') : null;
+    });
     return cache;
   }
 
@@ -214,13 +215,12 @@ export async function loadKnowledge() {
   }
 
   const raw = decryptBundle(readFileSync(path), key);
-  // Normalize: strip .js from bundle keys so caller uses k.base.BASE_SYSTEM
-  const normalized = {};
-  for (const [fileKey, modExports] of Object.entries(raw)) {
-    const name = fileKey.replace(/\.js$/, '');
-    normalized[name] = modExports;
-  }
-  cache = normalized;
+  // bundle 存源码 { basename: source }，走与 dev 相同的 evalModule 求值路径，
+  // 函数 / zod schema / 跨文件依赖解密后原样保留。
+  cache = await buildModules((file) => {
+    const src = raw[file.replace(/\.js$/, '')];
+    return typeof src === 'string' ? src : null;
+  });
   console.log(`[knowledge-loader] Loaded ${Object.keys(cache).length} modules.`);
   return cache;
 }
