@@ -113,6 +113,7 @@ npm run dev
 
 - **知识库隔离**：所有路由必须通过 `knowledge-loader.js` 加载提示词，禁止直接 import `prompts/*.js`。
   - 验证：`node scripts/test-knowledge-loader.js`（自动检查 + 导出完整性校验）
+  - 部署前门禁：`node scripts/verify-knowledge-prod.js`（生产模式解密后函数 / zod / analyze 全链验证，需 KNOWLEDGE_KEY）
   - 或：`grep -r "from '../prompts/" server/src/routes/` → 必须空输出
 - **多格式上传**：`/api/upload` 支持 PDF、Word(.docx)、HTML、Markdown(.md)、TXT 五种格式解析。
   - 验证：`node scripts/test-multi-format.js`（5 格式提取 + MIME→extension 回退）
