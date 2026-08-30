@@ -1,8 +1,7 @@
 import express from 'express';
 import { nanoid } from 'nanoid';
 import { streamText } from 'ai';
-import { getProvider } from '../providers/index.js';
-import { resolveConfig } from '../utils/config.js';
+import { getModel, failSSE } from '../harness/run.js';
 import { initSSE, sendSSE, endSSE } from '../utils/sse.js';
 import { loadKnowledge } from '../knowledge-loader.js';
 import { track, trackUsage } from '../utils/analytics.js';
@@ -46,10 +45,10 @@ router.post('/chat', async (req, res) => {
     return res.status(400).json({ error: '缺少 messages' });
   }
 
-  const cfg = resolveConfig(req);
+  let cfg;
   let model;
   try {
-    model = getProvider(cfg);
+    ({ cfg, model } = getModel(req));
   } catch (e) {
     return res.status(400).json({ error: e.message });
   }
@@ -97,10 +96,7 @@ router.post('/chat', async (req, res) => {
       trackUsage(undefined, `interview_${mode}`, result.usage, cfg.provider, cfg.model);
     }
   } catch (e) {
-    console.error('[chat] error:', e);
-    sendSSE(res, { type: 'error', message: e.message || String(e) });
-    endSSE(res);
-    track(undefined, 'error_api_fail', { endpoint: 'chat', status_code: 500, error_message: e.message, capability: `interview_${mode}` });
+    failSSE(res, e, 'chat', `interview_${mode}`);
   }
 });
 
@@ -113,10 +109,10 @@ router.post('/rewrite', async (req, res) => {
     return res.status(400).json({ error: '缺少 messages' });
   }
 
-  const cfg = resolveConfig(req);
+  let cfg;
   let model;
   try {
-    model = getProvider(cfg);
+    ({ cfg, model } = getModel(req));
   } catch (e) {
     return res.status(400).json({ error: e.message });
   }
@@ -159,10 +155,7 @@ router.post('/rewrite', async (req, res) => {
       trackUsage(undefined, `chat_${mode}`, result.usage, cfg.provider, cfg.model);
     }
   } catch (e) {
-    console.error('[rewrite] error:', e);
-    sendSSE(res, { type: 'error', message: e.message || String(e) });
-    endSSE(res);
-    track(undefined, 'error_api_fail', { endpoint: 'rewrite', status_code: 500, error_message: e.message, capability: mode });
+    failSSE(res, e, 'rewrite', mode);
   }
 });
 
