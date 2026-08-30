@@ -55,7 +55,9 @@ app.use('/api', shareRouter);
 app.use('/api', modelRouter);
 app.use('/invites', invitesRouter);
 app.use('/projects', projectsRouter);
-app.use('/api/analytics', analyticsRouter);
+// 挂 /api 与其他路由一致;路由内路径已含 /analytics 前缀
+// (原先挂 /api/analytics 导致真实路径变成 /api/analytics/analytics/batch,客户端上报全 404 静默丢失)
+app.use('/api', analyticsRouter);
 
 // 生产：托管前端构建产物
 const __dirname = path.dirname(fileURLToPath(import.meta.url));

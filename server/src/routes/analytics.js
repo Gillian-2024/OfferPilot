@@ -1,23 +1,39 @@
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import { getDb } from '../db/index.js';
 
 const router = express.Router();
 
 // ── Batch event ingestion (frontend SDK) ───────────────────────
 
+// 对外开放收紧:匿名埋点保留(登录前漏斗 page_enter 等依赖匿名上报),
+// 但堵死「匿名无限写盘」滥用面——单 IP 严限流 + 单批量/字段长度全截断。
+// 若未来埋点需要更强可信度,再考虑登录态关联或上报签名,不在本次范围。
+const analyticsLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 30,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: { error: '请求过于频繁，请稍后再试' },
+});
+
+// 与客户端 SDK 的 BATCH_SIZE=20 对齐,服务端不再多给余量
+const MAX_BATCH = 20;
+const clipStr = (v, n) => (typeof v === 'string' ? v.slice(0, n) : '');
+
 /**
  * POST /api/analytics/batch
  * Body: { events: [{ device_id?, event, path?, extra?, ts?, ua?, screen? }] }
- * Max 100 events per request.
+ * 单次最多 20 条事件,字段超长截断,非法事件丢弃。
  */
-router.post('/analytics/batch', async (req, res) => {
+router.post('/analytics/batch', analyticsLimiter, async (req, res) => {
   try {
     const { events } = req.body;
     if (!Array.isArray(events) || events.length === 0) {
       return res.status(400).json({ error: 'events 必须是非空数组' });
     }
-    if (events.length > 100) {
-      return res.status(400).json({ error: '单次最多 100 条事件' });
+    if (events.length > MAX_BATCH) {
+      return res.status(400).json({ error: `单次最多 ${MAX_BATCH} 条事件` });
     }
 
     const db = getDb();
@@ -30,21 +46,35 @@ router.post('/analytics/batch', async (req, res) => {
     `);
 
     const insertMany = db.transaction((rows) => {
-      for (const e of rows) {
-        stmt.run(...e);
+      for (const r of rows) {
+        stmt.run(...r);
       }
     });
 
-    const values = events.map((e) => [
-      e.device_id || '',
-      e.event,
-      e.path || null,
-      JSON.stringify(e.extra || {}),
-      e.ts || now,
-      e.ua || '',
-      e.screen || '',
-      now,
-    ]);
+    // 逐条校验+截断:缺 event 名/非对象的直接丢弃,extra 序列化后限 2KB
+    const values = [];
+    for (const e of events) {
+      if (!e || typeof e !== 'object' || typeof e.event !== 'string' || !e.event) continue;
+      let extraStr = '{}';
+      try {
+        extraStr = JSON.stringify(e.extra || {});
+      } catch {
+        extraStr = '{}';
+      }
+      values.push([
+        clipStr(e.device_id, 64),
+        clipStr(e.event, 64),
+        clipStr(e.path, 256) || null,
+        extraStr.slice(0, 2048),
+        typeof e.ts === 'number' ? e.ts : now,
+        clipStr(e.ua, 256),
+        clipStr(e.screen, 32),
+        now,
+      ]);
+    }
+    if (!values.length) {
+      return res.status(400).json({ error: '无有效事件（每条需含非空 event 字符串）' });
+    }
 
     insertMany(values);
     res.json({ ok: true, received: values.length });
