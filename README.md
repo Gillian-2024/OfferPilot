@@ -20,6 +20,8 @@
 | 面试准备 | 对话式面试前准备 | streamText + 8 个快捷能力（预测面试题 / 公司定向 / 概念辨析 / 场景分析 / 反问技巧 / 自我介绍 / HR面准备 / 薪资谈判） |
 | 面试复盘 | 对话式逐题复盘 | streamText + 混合模式（逐题粘贴 / 模拟追问） |
 
+> ⚙️ **新增第五能力时**触发 harness 收拢 STEP 2（能力注册表：{名字, system 拼法, 输入抽取, 输出格式}，加能力 = 加一行不动 run.js），见 [`docs/harness/verify.md`](docs/harness/verify.md)。
+
 ## 技术栈
 
 - 前端：React + Vite + TypeScript + Ant Design + React Router

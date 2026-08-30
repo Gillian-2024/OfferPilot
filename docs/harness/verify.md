@@ -25,3 +25,13 @@
 
 - cors/ratelimit 测试构造**同样的中间件配置**验证行为（index.js 不导出 app、启动即 listen，不为此重构）；index.js 真实内容由 harness-check R2/R5 静态锁定。两层互补。
 - chat 路由集成测试由 harness-check R4 静态断言承担（chat.js 顶层 loadKnowledge 依赖 .knowledge.enc，import 过重）；wrapUserContent 纯函数走单元测试。
+
+## Harness 收拢计划状态（2026-08-30）
+
+> 收拢计划三步：STEP 0 补洞 → STEP 1 抽 run.js → STEP 2 能力注册表。STEP 0/1 完成；STEP 2 按 onepaper 决策延期。
+
+| 步骤 | 状态 | 说明 |
+|---|---|---|
+| STEP 0 安全补洞 | ✅ 完成（2026-08-29） | 见上方「安全收口变更记录」 |
+| STEP 1 抽 `harness/run.js` | ✅ 完成（`f036116`） | 纯重构，三关全绿 |
+| STEP 2 能力注册表 | ⏸️ 延期 | **触发条件：新增第五能力时**。把四能力登记成表 {名字, system 怎么拼, 输入怎么抽, 输出什么格式}，加第五能力 = 加一行，不动 run.js。现在不建 = 避免预先设计扩展点。 |
