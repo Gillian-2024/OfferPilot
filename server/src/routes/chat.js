@@ -6,6 +6,7 @@ import { initSSE, sendSSE, endSSE } from '../utils/sse.js';
 import { loadKnowledge } from '../knowledge-loader.js';
 import { track, trackUsage } from '../utils/analytics.js';
 import { requireAuth } from '../middleware/auth.js';
+import { requireCredits } from '../middleware/credits.js';
 import { getStatement } from '../db/index.js';
 import { wrapUserContent } from '../utils/contentBoundary.js';
 
@@ -39,7 +40,7 @@ function chatTitle(messages) {
 // 对外开放:需登录——LLM 调用走服务端 key,匿名开放等于成本滥用敞口;登录态同时拿到 userId 供兜底落库
 // 注意按路由挂 requireAuth,不用 router.use:本 router 挂在共享 /api 前缀上,
 // router.use 会拦住所有进入该前缀的请求(包括后面 router 的公开端点)
-router.post('/chat', requireAuth, async (req, res) => {
+router.post('/chat', requireAuth, requireCredits, async (req, res) => {
   const { messages = [], context = {}, mode = 'review', sessionId } = req.body;
   if (!messages.length) {
     return res.status(400).json({ error: '缺少 messages' });
@@ -103,7 +104,7 @@ router.post('/chat', requireAuth, async (req, res) => {
 // 简历改写 + 自我评价生成：同样 streamText
 // body: { messages: [{role, content}], mode?: 'rewrite' | 'self-eval', sessionId? }
 const SYSTEM_MAP = { rewrite: REWRITE_SYSTEM, 'self-eval': SELF_EVAL_SYSTEM };
-router.post('/rewrite', requireAuth, async (req, res) => {
+router.post('/rewrite', requireAuth, requireCredits, async (req, res) => {
   const { messages = [], mode = 'rewrite', sessionId } = req.body;
   if (!messages.length) {
     return res.status(400).json({ error: '缺少 messages' });

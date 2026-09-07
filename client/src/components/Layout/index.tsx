@@ -1,12 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { Tabs } from 'antd';
-import { ThunderboltOutlined, FileTextOutlined, RocketOutlined, BookOutlined } from '@ant-design/icons';
+import { ThunderboltOutlined, FileTextOutlined, RocketOutlined, BookOutlined, RobotOutlined } from '@ant-design/icons';
 import { getSettings, setSettings as saveSettings } from '../../store/local';
 import { Settings } from '../../types';
 import { useSidebar } from '../../contexts/SidebarContext';
 import { api } from '../../api/client';
 import SettingsPanel from '../Settings/SettingsPanel';
 import AuthModal from '../Auth/AuthModal';
+import PaywallModal from '../Pricing/PaywallModal';
+import GlobalFeedback from '../Feedback/GlobalFeedback';
+import CoachingTab from '../CoachingTab';
 import Sidebar from '../Sidebar';
 import JDAnalysis from '../JDAnalysis';
 import ResumeAnalysis from '../ResumeAnalysis';
@@ -88,6 +92,16 @@ export default function Layout() {
       ),
       children: null,
     },
+    {
+      key: 'coaching',
+      label: (
+        <span>
+          <RobotOutlined className="mr-4" />
+          陪练
+        </span>
+      ),
+      children: null,
+    },
   ];
 
   return (
@@ -108,10 +122,18 @@ export default function Layout() {
           {activeKey === 'resume' && <ResumeAnalysis settings={settings} onGotoJD={() => setActiveKey('jd')} />}
           {activeKey === 'interview-prep' && <InterviewReview settings={settings} onGotoJD={() => setActiveKey('jd')} viewMode="prep" />}
           {activeKey === 'interview-review' && <InterviewReview settings={settings} onGotoJD={() => setActiveKey('jd')} viewMode="review" />}
+          {activeKey === 'coaching' && <CoachingTab />}
         </main>
+        <footer className="app-footer">
+          <Link to="/privacy">隐私政策</Link>
+          <span className="app-footer-sep">·</span>
+          <Link to="/terms">用户协议</Link>
+        </footer>
       </div>
       <SettingsPanel open={settingsOpen} onClose={closeSettings} settings={settings} onSave={handleSave} />
       <AuthModal open={authModalOpen} onClose={closeAuthModal} />
+      <PaywallModal />
+      <GlobalFeedback />
     </div>
   );
 }

@@ -20,6 +20,7 @@ import XMarkdown from '@ant-design/x-markdown';
 import FileUpload from '../shared/FileUpload';
 import Steps from '../shared/HorizontalSteps';
 import { ResumeResultView, JDResultBrief } from '../shared/ResultViews';
+import ResultFeedbackBar from '../Feedback/ResultFeedbackBar';
 import { api } from '../../api/client';
 import { Settings, ResumeResult, SSEMessage } from '../../types';
 import { getJDResult, getResumeResult, getActiveJob, setResumeResult, setResumeSummary, getResumeSummary, addHistorySynced, getSelfEval, setSelfEval, recordModelResult } from '../../store/local';
@@ -399,6 +400,7 @@ export default function ResumeAnalysis({ settings, onGotoJD }: { settings: Setti
           {/* 结果 */}
           <div className="step-detail-enter" ref={resultRef}>
             {result ? <ResumeResultView data={result} onRewriteModule={onRewriteModule} /> : !loading ? <Empty description="上传简历，让领航员帮你匹配最合适的机会" /> : null}
+            {result && <ResultFeedbackBar resultType="resume" />}
           </div>
         </div>
       </div>

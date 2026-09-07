@@ -2,7 +2,8 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { nanoid } from 'nanoid';
 import { getDb } from '../db/index.js';
-import { signToken, requireAuth } from '../middleware/auth.js';
+import { signToken, requireAuth, isAdminUsername } from '../middleware/auth.js';
+import { parseCapabilities } from '../utils/entitlements.js';
 
 const router = Router();
 
@@ -44,7 +45,7 @@ router.post('/register', async (req, res) => {
 
     res.json({
       token,
-      user: { id, username: trimmed, nickname: displayName, createdAt: now },
+      user: { id, username: trimmed, nickname: displayName, createdAt: now, credits: 3, capabilities: [], planExpiresAt: null, isAdmin: isAdminUsername(trimmed) },
     });
   } catch (e) {
     console.error('[auth/register]', e);
@@ -77,7 +78,16 @@ router.post('/login', async (req, res) => {
 
     res.json({
       token,
-      user: { id: user.id, username: user.username, nickname: user.nickname, createdAt: user.created_at },
+      user: {
+        id: user.id,
+        username: user.username,
+        nickname: user.nickname,
+        createdAt: user.created_at,
+        credits: user.credits,
+        capabilities: parseCapabilities(user.capabilities),
+        planExpiresAt: user.plan_expires_at || null,
+        isAdmin: isAdminUsername(user.username),
+      },
     });
   } catch (e) {
     console.error('[auth/login]', e);
@@ -89,7 +99,7 @@ router.post('/login', async (req, res) => {
 router.get('/me', requireAuth, (req, res) => {
   try {
     const db = getDb();
-    const user = db.prepare('SELECT id, username, nickname, created_at FROM users WHERE id = ?').get(req.userId);
+    const user = db.prepare('SELECT id, username, nickname, created_at, credits, capabilities, plan_expires_at FROM users WHERE id = ?').get(req.userId);
 
     if (!user) {
       return res.status(404).json({ error: '用户不存在' });
@@ -100,6 +110,10 @@ router.get('/me', requireAuth, (req, res) => {
       username: user.username,
       nickname: user.nickname,
       createdAt: user.created_at,
+      credits: user.credits,
+      capabilities: parseCapabilities(user.capabilities),
+      planExpiresAt: user.plan_expires_at || null,
+      isAdmin: isAdminUsername(user.username),
     });
   } catch (e) {
     console.error('[auth/me]', e);

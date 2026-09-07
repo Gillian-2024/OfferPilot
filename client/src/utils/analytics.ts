@@ -12,6 +12,8 @@
  *   track('jd_file_upload', { file_type: 'pdf', file_size_bytes: 12345 });
  */
 
+import { authHeaders } from '../api/auth';
+
 // ── Device ID ─────────────────────────────────────────────────
 
 const DEVICE_ID_KEY = 'analytics_device_id';
@@ -76,7 +78,7 @@ async function flush() {
   try {
     await fetch('/api/analytics/batch', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify({
         events: batch.map((e) => ({
           device_id: device.getId(),

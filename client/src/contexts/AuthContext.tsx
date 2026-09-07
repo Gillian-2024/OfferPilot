@@ -7,9 +7,11 @@ interface AuthContextValue {
   user: User | null;
   loading: boolean;
   isLoggedIn: boolean;
+  isAdmin: boolean;
   login: (username: string, password: string) => Promise<void>;
   register: (username: string, password: string, nickname?: string) => Promise<void>;
   logout: () => void;
+  refreshUser: () => Promise<User | null>;
 }
 
 const AuthContext = createContext<AuthContextValue>(null!);
@@ -68,8 +70,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   }, []);
 
+  // 主动刷新用户态（如额度扣减后同步最新 credits）
+  const refreshUser = useCallback(async () => {
+    const u = await authApi.fetchMe();
+    if (u) setUser(u);
+    return u;
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, loading, isLoggedIn: !!user, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, isLoggedIn: !!user, isAdmin: !!user?.isAdmin, login, register, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1195,3 +1195,208 @@ a:focus-visible,
 .pdf-qa-a { white-space: pre-wrap; color: #333; }
 .pdf-section { margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e6eb; }
 .pdf-growth p { margin: 6px 0; white-space: pre-wrap; }
+
+/* ── 结果页反馈条 ── */
+.fb-bar {
+  margin-top: 10px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-light);
+}
+.fb-bar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.fb-bar-q { font-size: 13px; color: var(--color-text-secondary); }
+.fb-btn { color: var(--color-text-tertiary); border-radius: var(--radius-sm); }
+.fb-btn:hover { color: var(--color-primary); background: var(--color-primary-light); }
+.fb-btn--up { color: var(--color-status-ok) !important; background: color-mix(in srgb, var(--color-status-ok) 10%, transparent); }
+.fb-btn--down { color: var(--color-status-miss) !important; background: color-mix(in srgb, var(--color-status-miss) 10%, transparent); }
+.fb-bar-comment { display: flex; gap: 8px; margin-top: 8px; }
+.fb-bar-comment .ant-input-affix-wrapper,
+.fb-bar-comment .ant-input { flex: 1; }
+.fb-bar-thanks { font-size: 13px; color: var(--color-text-tertiary); text-align: center; padding: 2px 0; }
+.pdf-exporting .fb-bar { display: none !important; }
+
+/* ── 全局反馈浮层 ── */
+.gfb-fab {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 11px 18px;
+  border: none;
+  cursor: pointer;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  box-shadow: var(--shadow-lg);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+.gfb-fab:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(20, 39, 63, 0.20);
+}
+.gfb-fab .anticon { font-size: 16px; }
+
+.gfb-drawer .ant-drawer-header { border-bottom: 1px solid var(--color-border-light); }
+.gfb-drawer .ant-drawer-body { padding: 20px; }
+.gfb-body { display: flex; flex-direction: column; gap: 18px; }
+.gfb-hint { margin: 0; font-size: 13px; line-height: 1.7; color: var(--color-text-secondary); }
+.gfb-field { display: flex; flex-direction: column; gap: 8px; }
+.gfb-field label { font-size: 13px; font-weight: 500; color: var(--color-text); }
+.gfb-submit { margin-top: 4px; }
+.gfb-foot { margin: 0; font-size: 12px; color: var(--color-text-tertiary); text-align: center; }
+
+/* ── 第五 tab · 陪练占位 ── */
+.coaching-placeholder {
+  min-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+}
+.coaching-card {
+  max-width: 440px;
+  width: 100%;
+  text-align: center;
+  padding: 40px 32px;
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-md);
+}
+.coaching-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.coaching-badge {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-soft));
+}
+.coaching-tag { margin: 0; }
+.coaching-title { margin: 0 0 8px; font-size: 22px; font-weight: 700; color: var(--color-text); }
+.coaching-desc { margin: 0 0 24px; font-size: 14px; line-height: 1.7; color: var(--color-text-secondary); }
+.coaching-points { list-style: none; margin: 0 0 28px; padding: 0; text-align: left; }
+.coaching-points li {
+  padding: 8px 0 8px 20px;
+  position: relative;
+  font-size: 13.5px;
+  color: var(--color-text-secondary);
+  border-bottom: 1px dashed var(--color-border-light);
+}
+.coaching-points li:last-child { border-bottom: none; }
+.coaching-points li::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 15px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-gold);
+}
+.coaching-cta { width: 100%; }
+
+/* AdminPanel (管理看板) */
+.adm-body { padding: 16px 24px; max-width: 1120px; margin: 0 auto; }
+.adm-detail { margin-top: 28px; }
+.adm-row-selected > td { background: rgba(20, 39, 63, 0.06) !important; }
+.adm-event { padding: 10px 4px; }
+.adm-event .ant-list-item-meta-description { word-break: break-all; }
+
+/* ── Legal pages (隐私政策 / 用户协议) ── */
+.legal-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-elevated);
+}
+.legal-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 28px clamp(16px, 5vw, 48px) 72px;
+  max-width: 880px;
+  width: 100%;
+  margin: 0 auto;
+  color: var(--color-text);
+}
+.legal-body h1 {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 8px;
+  color: var(--color-text);
+}
+.legal-body h2 {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 32px 0 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--color-border-light);
+  color: var(--color-text);
+}
+.legal-body h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 20px 0 8px;
+  color: var(--color-text);
+}
+.legal-body p {
+  line-height: 1.8;
+  margin: 0 0 12px;
+}
+.legal-body ul,
+.legal-body ol {
+  padding-left: 20px;
+  margin: 0 0 12px;
+  line-height: 1.8;
+}
+.legal-body li { margin: 4px 0; }
+.legal-body blockquote {
+  margin: 12px 0;
+  padding: 10px 16px;
+  border-left: 3px solid var(--color-primary);
+  background: var(--color-bg-subtle);
+  color: var(--color-text-secondary);
+}
+.legal-body hr {
+  border: none;
+  border-top: 1px solid var(--color-border-light);
+  margin: 24px 0;
+}
+.legal-body a { color: var(--color-primary); }
+
+/* App footer (隐私政策 / 用户协议 入口) */
+.app-footer {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  border-top: 1px solid var(--color-border-light);
+}
+.app-footer a { color: var(--color-text-secondary); }
+.app-footer a:hover { color: var(--color-primary); }
+.app-footer-sep { opacity: 0.5; }

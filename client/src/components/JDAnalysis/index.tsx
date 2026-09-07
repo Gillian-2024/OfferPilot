@@ -15,6 +15,7 @@ import {
 import FileUpload from '../shared/FileUpload';
 import Steps from '../shared/HorizontalSteps';
 import { JDResultView } from '../shared/ResultViews';
+import ResultFeedbackBar from '../Feedback/ResultFeedbackBar';
 import { api } from '../../api/client';
 import { Settings, JDResult } from '../../types';
 import { getActiveJob, getJDResult, setJDResult, addHistorySynced, recordModelResult } from '../../store/local';
@@ -248,6 +249,7 @@ export default function JDAnalysis({ settings, onGotoResume }: { settings: Setti
       {/* 结果 */}
       <div className="step-detail-enter" ref={resultRef}>
         {result ? <JDResultView data={result} /> : !loading ? <Empty description="上传JD，让领航员帮你4 步拆出岗位画像与关键词" /> : null}
+        {result && <ResultFeedbackBar resultType="jd" />}
       </div>
     </div>
   );

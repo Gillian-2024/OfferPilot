@@ -1,4 +1,4 @@
-import { Folder, Invite, Project, Settings, SSEMessage } from '../types';
+import { Folder, Invite, Project, Settings, SSEMessage, Sku } from '../types';
 import { authHeaders as tokenAuthHeaders } from './auth';
 
 // 请求头：双轨制——用户设置面板覆盖时随请求透传，否则后端读 .env
@@ -33,7 +33,11 @@ export async function* streamSSE(url: string, body: any, settings: Settings): As
   });
   if (!res.ok) {
     const e = await res.json().catch(() => ({}));
-    throw new Error(e.error || `请求失败 ${res.status}`);
+    const err = new Error(e.error || `请求失败 ${res.status}`) as Error & { code?: string };
+    err.code = e.code;
+    // 额度耗尽 → 广播事件，PricingContext 监听后弹付费墙（业务组件无需各自处理 403）
+    if (e.code === 'QUOTA_EXCEEDED') window.dispatchEvent(new CustomEvent('paywall:open'));
+    throw err;
   }
   const reader = res.body!.getReader();
   const decoder = new TextDecoder();
@@ -66,6 +70,12 @@ export type ModelCheckResult = {
 
 export const api = {
   uploadFile,
+  // 付费商品列表（付费墙弹窗用）
+  getSkus: async () => {
+    const res = await fetch('/api/skus', { headers: tokenAuthHeaders() });
+    if (!res.ok) throw new Error('获取商品列表失败');
+    return res.json() as Promise<{ skus: Sku[] }>;
+  },
   // 模型配置探测：1-token 最小调用，验证 Key / 网关 / 配额是否可用
   checkModel: async (s: Settings) => {
     const res = await fetch('/api/model/check', { method: 'POST', headers: { ...authHeaders(s), ...tokenAuthHeaders() } });

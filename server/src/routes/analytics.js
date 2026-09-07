@@ -1,6 +1,7 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import { getDb } from '../db/index.js';
+import { optionalAuth } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -26,7 +27,7 @@ const clipStr = (v, n) => (typeof v === 'string' ? v.slice(0, n) : '');
  * Body: { events: [{ device_id?, event, path?, extra?, ts?, ua?, screen? }] }
  * 单次最多 20 条事件,字段超长截断,非法事件丢弃。
  */
-router.post('/analytics/batch', analyticsLimiter, async (req, res) => {
+router.post('/analytics/batch', analyticsLimiter, optionalAuth, async (req, res) => {
   try {
     const { events } = req.body;
     if (!Array.isArray(events) || events.length === 0) {
@@ -42,7 +43,7 @@ router.post('/analytics/batch', analyticsLimiter, async (req, res) => {
     // Prepare single insert to avoid N+1
     const stmt = db.prepare(`
       INSERT INTO analytics_events (device_id, user_id, event, path, extra, ts, ua, screen, created_at)
-      VALUES (?, NULL, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const insertMany = db.transaction((rows) => {
@@ -63,6 +64,7 @@ router.post('/analytics/batch', analyticsLimiter, async (req, res) => {
       }
       values.push([
         clipStr(e.device_id, 64),
+        req.userId || null,
         clipStr(e.event, 64),
         clipStr(e.path, 256) || null,
         extraStr.slice(0, 2048),

@@ -46,3 +46,22 @@ export function optionalAuth(req, res, next) {
     next();
   }
 }
+
+// 管理员白名单：ADMIN_USERNAMES 逗号分隔的用户名列表（空 = 无人有权限）
+export function isAdminUsername(username) {
+  const admins = (process.env.ADMIN_USERNAMES || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return !!username && admins.includes(username);
+}
+
+// 管理员鉴权：requireAuth 通过后再校验用户名是否在管理员白名单
+export function requireAdmin(req, res, next) {
+  requireAuth(req, res, () => {
+    if (!isAdminUsername(req.username)) {
+      return res.status(403).json({ error: '无管理员权限' });
+    }
+    next();
+  });
+}

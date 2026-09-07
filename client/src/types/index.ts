@@ -21,6 +21,20 @@ export interface User {
   username: string;
   nickname?: string;
   createdAt: number;
+  credits: number;
+  capabilities: string[];
+  planExpiresAt: number | null;
+  isAdmin?: boolean;
+}
+
+// 付费 SKU（对应后端 /api/skus）
+export interface Sku {
+  code: string;
+  name: string;
+  priceCents: number;
+  credits: number;
+  capabilities: string[];
+  durationDays: number | null;
 }
 
 // Sidebar:文件夹 / 项目 / 邀请码

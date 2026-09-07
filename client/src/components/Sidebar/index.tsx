@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Tooltip, Dropdown, Modal, Input, message } from 'antd';
 import type { MenuProps } from 'antd';
-import { HistoryOutlined, LogoutOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
+import { HistoryOutlined, LogoutOutlined, PlusOutlined, DeleteOutlined, CrownOutlined, DashboardOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useSidebar } from '../../contexts/SidebarContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { usePricing } from '../../contexts/PricingContext';
 import { createJob, deleteJob } from '../../store/local';
 import type { JobContext } from '../../store/local';
 import InviteDialog from './InviteDialog';
@@ -25,6 +26,7 @@ const modelStatusMeta = (status: ModelStatus, modelChecked: string, modelError: 
 function IdentityRow() {
   const { openAuthModal } = useSidebar();
   const { user, isLoggedIn, logout } = useAuth();
+  const { credits, isSubscribed, openPaywall } = usePricing();
   const navigate = useNavigate();
 
   if (!isLoggedIn) {
@@ -47,8 +49,17 @@ function IdentityRow() {
 
   const menuItems: MenuProps['items'] = [
     { key: 'user-info', label: `${user?.nickname || user?.username}`, disabled: true, className: 'menu-user-name' },
+    { key: 'credits', label: isSubscribed ? '已订阅 · 不限次' : `剩余额度 ${credits} 次`, disabled: true },
+    { type: 'divider' },
+    { key: 'upgrade', icon: <CrownOutlined />, label: '升级会员', onClick: openPaywall },
     { type: 'divider' },
     { key: 'history', icon: <HistoryOutlined />, label: '历史记录', onClick: () => navigate('/history') },
+    ...(user?.isAdmin
+      ? [
+          { type: 'divider' as const },
+          { key: 'admin', icon: <DashboardOutlined />, label: '管理看板', onClick: () => navigate('/admin') },
+        ]
+      : []),
     { type: 'divider' },
     { key: 'logout', icon: <LogoutOutlined />, label: '退出登录', onClick: logout },
   ];

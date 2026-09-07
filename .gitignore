@@ -6,6 +6,7 @@ server/.env
 server/.env.local
 client/.env
 client/.env.local
+client/public/wechat-qr.png
 server/data/share-store
 server/data/*.db
 server/data/*.db-wal

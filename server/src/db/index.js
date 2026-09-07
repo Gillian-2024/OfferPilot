@@ -112,6 +112,49 @@ export function getDb() {
   // Safe ALTER: ignore if column already exists (idempotent across restarts)
   try { _db.exec(`ALTER TABLE history ADD COLUMN project_id TEXT REFERENCES projects(id) ON DELETE SET NULL`); } catch {}
 
+  // 付费框架:用户权益字段(Safe ALTER,幂等)
+  // credits=剩余次数(注册送 3);capabilities=权益位 JSON 数组;plan_expires_at=月卡/求职通到期时间戳(NULL=无订阅)
+  try { _db.exec(`ALTER TABLE users ADD COLUMN credits INTEGER NOT NULL DEFAULT 3`); } catch {}
+  try { _db.exec(`ALTER TABLE users ADD COLUMN capabilities TEXT NOT NULL DEFAULT '[]'`); } catch {}
+  try { _db.exec(`ALTER TABLE users ADD COLUMN plan_expires_at INTEGER`); } catch {}
+
+  // 付费框架:SKU 定义 + 订单。接支付前先落框架——channel/out_trade_no 预留支付渠道字段
+  _db.exec(`
+    CREATE TABLE IF NOT EXISTS skus (
+      code          TEXT PRIMARY KEY,
+      name          TEXT NOT NULL,
+      price_cents   INTEGER NOT NULL,
+      credits       INTEGER NOT NULL DEFAULT 0,
+      capabilities  TEXT NOT NULL DEFAULT '[]',
+      duration_days INTEGER,
+      active        INTEGER NOT NULL DEFAULT 1,
+      sort_order    INTEGER NOT NULL DEFAULT 0
+    );
+
+    CREATE TABLE IF NOT EXISTS orders (
+      id           TEXT PRIMARY KEY,
+      user_id      TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      sku_code     TEXT NOT NULL,
+      amount_cents INTEGER NOT NULL,
+      status       TEXT NOT NULL DEFAULT 'pending',
+      channel      TEXT,
+      out_trade_no TEXT,
+      created_at   INTEGER NOT NULL,
+      paid_at      INTEGER
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id, created_at DESC);
+  `);
+
+  // SKU 种子(INSERT OR IGNORE 幂等;数值按 2026-08 定价定稿)
+  // 注:jobpass 的 duration_days 为 NULL——"绑应届届别 6 月截止"非固定天数,购买时按届别动态算 plan_expires_at(后续填)
+  _db.exec(`
+    INSERT OR IGNORE INTO skus (code, name, price_cents, credits, capabilities, duration_days, active, sort_order) VALUES
+      ('single',  '单次卡', 499,  1, '[]',          NULL, 1, 1),
+      ('monthly', '月卡',   2900, 0, '["monthly"]', 30,   1, 2),
+      ('jobpass', '求职通', 19900, 0, '["jobpass"]', NULL, 1, 3);
+  `);
+
   return _db;
 }
 

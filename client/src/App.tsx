@@ -3,6 +3,8 @@ import { useEffect } from 'react';
 import Layout from './components/Layout';
 import SharePage from './pages/SharePage';
 import HistoryPage from './pages/HistoryPage';
+import LegalPage from './pages/LegalPage';
+import AdminPanel from './components/Admin/AdminPanel';
 import { SidebarProvider } from './contexts/SidebarContext';
 import { trackPageChange } from './utils/analytics';
 
@@ -35,6 +37,9 @@ export default function App() {
           <Route path="/" element={<Layout />} />
           <Route path="/share/:id" element={<SharePage />} />
           <Route path="/history" element={<HistoryPage />} />
+          <Route path="/privacy" element={<LegalPage kind="privacy" />} />
+          <Route path="/terms" element={<LegalPage kind="terms" />} />
+          <Route path="/admin" element={<AdminPanel />} />
         </Routes>
       </SidebarProvider>
     </BrowserRouter>
