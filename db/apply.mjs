@@ -1,4 +1,4 @@
-// 迁移脚本：把 db/schema.sql 应用到 Supabase 项目。
+// 迁移脚本：把 db/schema.sql 应用到目标 Postgres（DATABASE_URL 指向的库）。
 // 用法（真实连接串由 .env.local 的 DATABASE_URL 提供，脚本运行时读取，不经模型上下文）：
 //   set -a && . ./.env.local && set +a && node db/apply.mjs
 // dotenv 不装也行：调用方用上面的 set -a 让 shell 把 .env.local 灌进 process.env。
@@ -57,7 +57,7 @@ await client.connect().catch((e) => fail(`连接失败: ${e.message}`));
 try {
   console.log("[apply] 执行迁移 (db/schema.sql)...");
   await client.query(sql);
-  console.log("[apply] 迁移成功：DDL + RLS + SKU 种子已执行。");
+  console.log("[apply] 迁移成功：DDL + SKU 种子已执行。");
 } catch (e) {
   fail(`迁移失败: ${e.message}`);
 }

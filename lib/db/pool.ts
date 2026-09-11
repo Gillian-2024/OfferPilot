@@ -1,6 +1,6 @@
 // 原生 PostgreSQL 连接池单例（替代 Supabase PostgREST 的 service-role admin / anon client）。
-// 用 node-postgres（pg）+ 原生参数化 SQL，打通任何 PG 后端：当前为 Supabase 托管 Postgres，
-// 迁到阿里云 RDS 后仅改 DATABASE_URL，代码不动。
+// 用 node-postgres（pg）+ 原生参数化 SQL，打通任何 PG 后端：当前为自建 Docker Postgres 16
+// （本机 OrbStack / 生产同机容器，见 db/docker-compose.yml）。换 RDS 仅改 DATABASE_URL，代码不动。
 import { Pool } from "pg";
 
 declare global {
@@ -12,7 +12,7 @@ export function getPool(): Pool {
   if (globalThis.__offerpilot_pool) return globalThis.__offerpilot_pool;
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error("缺少 DATABASE_URL（请检查 .env.local / 生产 env）");
-  // ssl 默认开启、不校验证书（兼容 Supabase 直连；国内 RDS 若禁用 ssl 用 PGSSL=disable 关掉）
+  // ssl 默认开启、不校验证书（兼容托管 PG 直连；自建容器与禁用 ssl 的 RDS 用 PGSSL=disable 关掉）
   const ssl = process.env.PGSSL === "disable" ? false : { rejectUnauthorized: false };
   globalThis.__offerpilot_pool = new Pool({ connectionString: url, ssl });
   return globalThis.__offerpilot_pool;

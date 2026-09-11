@@ -1,7 +1,7 @@
 // JD/简历拆解：分步链，SSE 推送 step 进度 + 最终 result。（Next 版）
 // 移植自 server/src/routes/analyze.js
 // body: { type: 'jd'|'resume', text, jdProfile?: object, jdKeywords?: string[] }
-// ⚠️ P4 接入 Supabase Auth + credits 时，在下方「guard 占位」处插入 requireAuth/requireCredits。
+// 鉴权与点数：已由 requireAuthRoute（lib/db/guards.ts）+ credits 中间件落地，无待接入项。
 import { NextRequest } from "next/server";
 import { generateText } from "ai";
 import { getModel, buildSchemaSection, failSSE } from "@/lib/ai/harness";

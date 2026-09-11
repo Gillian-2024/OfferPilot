@@ -1,5 +1,5 @@
 // Server-side analytics helpers。移植自 server/src/utils/analytics.js。
-// ✅ P3 落地后：persistAnalyticsEvent 写入 Supabase analytics_events（admin 直连，绕过 RLS）。
+// persistAnalyticsEvent 用原生 pg 写 analytics_events（无 RLS，服务端直写）。
 import type { AnalyticsEnv } from "./types";
 import { q } from "@/lib/db/pool";
 
