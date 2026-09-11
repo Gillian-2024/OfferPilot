@@ -43,3 +43,6 @@ next-env.d.ts
 *.bak
 *.bak.*
 _probe*.mjs
+
+# 部署包(每次打包生成,不入库)
+deploy.zip

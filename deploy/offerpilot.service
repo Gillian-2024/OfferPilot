@@ -1,0 +1,25 @@
+[Unit]
+Description=OfferPilot (Next.js)
+After=network.target docker.service
+Wants=docker.service
+
+[Service]
+Type=simple
+User=__USER__
+WorkingDirectory=__APP_DIR__
+# .env.local 由 Next 自动加载；这里显式声明便于 systemd 环境隔离
+EnvironmentFile=__APP_DIR__/.env.local
+Environment=NODE_ENV=production
+Environment=PORT=3000
+# 只监听回环，公网流量一律经 Nginx 转发（避免 3000 直接暴露）
+ExecStart=/usr/bin/env npx next start -H 127.0.0.1 -p 3000
+Restart=always
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+# 基础加固
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
