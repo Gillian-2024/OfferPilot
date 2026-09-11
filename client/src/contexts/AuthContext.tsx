@@ -20,13 +20,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    authApi.fetchMe().then((u) => {
-      setUser(u);
-      setLoading(false);
-    });
-  }, []);
-
   const migrateLocalHistory = useCallback(async () => {
     const SYNC_FLAG = 'cjc:synced';
     if (localStorage.getItem(SYNC_FLAG)) return;
@@ -51,6 +44,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  useEffect(() => {
+    authApi.fetchMe().then((u) => {
+      setUser(u);
+      setLoading(false);
+      // Next /login 走整页跳转、不经过 SPA 的 login()，因此挂载时也补齐本地历史同步
+      if (u) migrateLocalHistory();
+    });
+  }, [migrateLocalHistory]);
+
   const login = useCallback(async (username: string, password: string) => {
     const { user: u } = await authApi.login(username, password);
     setUser(u);
@@ -68,6 +70,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     authApi.clearToken();
     localStorage.removeItem('cjc:synced');
     setUser(null);
+    // 同步清服务端 Supabase session cookie（fire-and-forget）
+    fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
   }, []);
 
   // 主动刷新用户态（如额度扣减后同步最新 credits）

@@ -72,7 +72,7 @@ export const api = {
   uploadFile,
   // 付费商品列表（付费墙弹窗用）
   getSkus: async () => {
-    const res = await fetch('/api/skus', { headers: tokenAuthHeaders() });
+    const res = await fetch('/api/billing/skus', { headers: tokenAuthHeaders() });
     if (!res.ok) throw new Error('获取商品列表失败');
     return res.json() as Promise<{ skus: Sku[] }>;
   },
@@ -112,12 +112,12 @@ export const sidebarApi = {
   // Projects
   getProjects: async (folderId?: string) => {
     const params = folderId ? `?folder_id=${encodeURIComponent(folderId)}` : '';
-    const res = await fetch(`/projects/projects${params}`, { headers: tokenAuthHeaders() });
+    const res = await fetch(`/api/projects${params}`, { headers: tokenAuthHeaders() });
     if (!res.ok) throw new Error('获取项目列表失败');
     return res.json() as Promise<Project[]>;
   },
   createProject: async (name: string, folderId?: string) => {
-    const res = await fetch('/projects/projects', {
+    const res = await fetch('/api/projects', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...tokenAuthHeaders() },
       body: JSON.stringify({ name, folder_id: folderId || null }),
@@ -129,7 +129,7 @@ export const sidebarApi = {
     return res.json() as Promise<Project>;
   },
   updateProject: async (id: string, patch: { name?: string; folder_id?: string | null }) => {
-    const res = await fetch(`/projects/projects/${id}`, {
+    const res = await fetch(`/api/projects/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', ...tokenAuthHeaders() },
       body: JSON.stringify(patch),
@@ -141,7 +141,7 @@ export const sidebarApi = {
     return res.json() as Promise<Project>;
   },
   deleteProject: async (id: string) => {
-    const res = await fetch(`/projects/projects/${id}`, {
+    const res = await fetch(`/api/projects/${id}`, {
       method: 'DELETE',
       headers: tokenAuthHeaders(),
     });
@@ -154,12 +154,12 @@ export const sidebarApi = {
 
   // Folders
   getFolders: async () => {
-    const res = await fetch('/projects/folders', { headers: tokenAuthHeaders() });
+    const res = await fetch('/api/folders', { headers: tokenAuthHeaders() });
     if (!res.ok) throw new Error('获取文件夹列表失败');
     return res.json() as Promise<Folder[]>;
   },
   createFolder: async (name: string) => {
-    const res = await fetch('/projects/folders', {
+    const res = await fetch('/api/folders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...tokenAuthHeaders() },
       body: JSON.stringify({ name }),
@@ -171,7 +171,7 @@ export const sidebarApi = {
     return res.json() as Promise<Folder>;
   },
   updateFolder: async (id: string, patch: { name?: string; sort_order?: number }) => {
-    const res = await fetch(`/projects/folders/${id}`, {
+    const res = await fetch(`/api/folders/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', ...tokenAuthHeaders() },
       body: JSON.stringify(patch),
@@ -183,7 +183,7 @@ export const sidebarApi = {
     return res.json() as Promise<Folder>;
   },
   deleteFolder: async (id: string) => {
-    const res = await fetch(`/projects/folders/${id}`, {
+    const res = await fetch(`/api/folders/${id}`, {
       method: 'DELETE',
       headers: tokenAuthHeaders(),
     });
@@ -196,7 +196,7 @@ export const sidebarApi = {
 
   // Invites
   getMyInvite: async () => {
-    const res = await fetch('/invites/my', { headers: tokenAuthHeaders() });
+    const res = await fetch('/api/invites/my', { headers: tokenAuthHeaders() });
     if (!res.ok) {
       const e = await res.json().catch(() => ({}));
       throw new Error(e.error || '获取邀请信息失败');
@@ -204,7 +204,7 @@ export const sidebarApi = {
     return res.json() as Promise<Invite>;
   },
   updateInviteCode: async (code: string) => {
-    const res = await fetch('/invites/my/code', {
+    const res = await fetch('/api/invites/my/code', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', ...tokenAuthHeaders() },
       body: JSON.stringify({ code }),

@@ -60,7 +60,7 @@ export default function InviteDialog({ open, onClose }: Props) {
       {invite ? (
         <>
           <div style={{ background: 'linear-gradient(135deg, #1a2744, #2d4a7a)', borderRadius: 12, padding: 24, marginBottom: 16, textAlign: 'center' }}>
-            <div style={{ fontSize: 28, fontWeight: 800, color: '#c9a44c', letterSpacing: 4, fontFamily: 'monospace' }}>{invite.code}</div>
+            <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--color-gold)', letterSpacing: 4, fontFamily: 'monospace' }}>{invite.code}</div>
             <div style={{ fontSize: 11, color: 'white', marginTop: 8, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }} onClick={copyCode}>
               <CopyOutlined /> 复制邀请码
             </div>

@@ -10,17 +10,6 @@ import { createJob, deleteJob } from '../../store/local';
 import type { JobContext } from '../../store/local';
 import InviteDialog from './InviteDialog';
 
-/* ---------- Model status ---------- */
-
-type ModelStatus = 'checking' | 'ok' | 'missing' | 'error';
-
-const modelStatusMeta = (status: ModelStatus, modelChecked: string, modelError: string) => ({
-  ok: { color: '#4ade80', short: '已配置', tip: `模型可用：${modelChecked || '已配置'}` },
-  missing: { color: '#f87171', short: '未配置', tip: '尚未配置模型，点击「🤖 我的模型」填写 API Key' },
-  error: { color: '#fb923c', short: '配置出错', tip: `配置无法使用：${modelError || '未知错误'}` },
-  checking: { color: '#94a3b8', short: '检测中', tip: '正在验证模型配置' },
-}[status]);
-
 /* ---------- Sub-components ---------- */
 
 function IdentityRow() {
@@ -33,7 +22,7 @@ function IdentityRow() {
     return (
       <Tooltip title="未登录 · 点击登录" placement="right">
         <div className="strip-item" onClick={openAuthModal}>
-          <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#1a2744', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#c9a44c', fontSize: 11, fontWeight: 600 }}>
+          <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#1a2744', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-gold)', fontSize: 11, fontWeight: 600 }}>
             ?
           </div>
           <span className="strip-item-text">
@@ -69,27 +58,13 @@ function IdentityRow() {
       {/* Avatar row → dropdown (user info / history / logout) */}
       <Dropdown menu={{ items: menuItems }} trigger={['click']} placement="bottomRight">
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 6, cursor: 'pointer' }}>
-          <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'linear-gradient(135deg, #1a2744, #2d4a7a)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#c9a44c', fontSize: 11, fontWeight: 600, flexShrink: 0 }}>
+          <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'linear-gradient(135deg, #1a2744, #2d4a7a)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-gold)', fontSize: 11, fontWeight: 600, flexShrink: 0 }}>
             {initial}
           </div>
           <span className="strip-item-text" style={{ fontSize: 12, fontWeight: 500 }}>{user!.nickname || user!.username}</span>
         </div>
       </Dropdown>
     </div>
-  );
-}
-
-function ModelRow({ modelStatus, modelChecked, modelError }: { modelStatus: ModelStatus; modelChecked: string; modelError: string }) {
-  const { openSettings } = useSidebar();
-  const s = modelStatusMeta(modelStatus, modelChecked, modelError);
-  return (
-    <Tooltip title={s.tip} placement="right">
-      <div className="strip-item" onClick={openSettings}>
-        <span className="strip-item-icon">🤖</span>
-        <span className="strip-item-text">我的模型</span>
-        <span style={{ fontSize: 9, color: s.color, marginLeft: 'auto', paddingRight: 2, whiteSpace: 'nowrap' }}>● {s.short}</span>
-      </div>
-    </Tooltip>
   );
 }
 
@@ -170,7 +145,7 @@ function JobSection() {
       label: (
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{j.name}</span>
-          {j.id === activeJobId && <span style={{ color: '#c9a44c' }}>✓</span>}
+          {j.id === activeJobId && <span style={{ color: 'var(--color-gold)' }}>✓</span>}
           {chip(!!j.jdResult, 'JD')}
           {chip(!!j.resumeSummary, '简历')}
         </span>
@@ -229,8 +204,8 @@ function JobSection() {
 
 /* ---------- Main Sidebar Component ---------- */
 
-export default function Sidebar({ modelStatus, modelChecked, modelError }: { modelStatus: ModelStatus; modelChecked: string; modelError: string }) {
-  const { inviteDialogOpen, closeInviteDialog } = useSidebar();
+export default function Sidebar() {
+  const { inviteDialogOpen, closeInviteDialog, openSettings } = useSidebar();
 
   return (
     <>
@@ -251,7 +226,6 @@ export default function Sidebar({ modelStatus, modelChecked, modelError }: { mod
             <div className="strip-section-label">基础配置</div>
             <div style={{ padding: '0 4px' }}>
               <IdentityRow />
-              <ModelRow modelStatus={modelStatus} modelChecked={modelChecked} modelError={modelError} />
               <InviteRow />
               <AdvancedFeatureRow />
             </div>
@@ -263,7 +237,10 @@ export default function Sidebar({ modelStatus, modelChecked, modelError }: { mod
         </div>
 
         {/* Footer */}
-        <div className="strip-footer">v1.0.0 · Gillian-2024/OfferPilot</div>
+        <div className="strip-footer">
+          <a className="strip-footer-link" onClick={openSettings}>🤖 AI 模型</a>
+          <span>· v1.0.0 · Gillian-2024/OfferPilot</span>
+        </div>
       </div>
 
       {/* Trigger modals/dialogs */}

@@ -29,3 +29,17 @@ client/playwright-report/
 
 # 临时测试产物
 tmp/
+
+# 数据库自建产物（密码/备份不提交）
+db/.env
+db/backups/
+
+# Next.js 构建产物
+.next/
+next-env.d.ts
+*.tsbuildinfo
+
+# 本地临时/备份产物
+*.bak
+*.bak.*
+_probe*.mjs

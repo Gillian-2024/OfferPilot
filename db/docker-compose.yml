@@ -1,0 +1,31 @@
+# OfferPilot 数据库 —— Docker 自建 PostgreSQL
+# 本机/ECS 通用：同一份 compose，本地开发与生产自建都靠它。
+# 配置从同级 .env 读取（POSTGRES_USER/PASSWORD/DB），见 db/.env.example。
+# 端口只绑 127.0.0.1，外网不可达：本机开发连 localhost:5432；生产若与 App 同机，
+# App 也连 127.0.0.1:5432。若 App 与 DB 分机，改绑定 + 白名单并自行评估安全。
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: offerpilot-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-offerpilot}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?must set in db/.env}
+      POSTGRES_DB: ${POSTGRES_DB:-offerpilot}
+    ports:
+      # 只绑本机回环：不暴露到公网。生产同机部署时 App 也走这里。
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    # 初次启动自动执行 schema（幂等）：挂载到 /docker-entrypoint-initdb.d
+    # select 样例：只在空库首启跑，后续用 node db/apply.mjs 幂等补
+    # volumes:
+    #   - ../db/schema.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+volumes:
+  pgdata:

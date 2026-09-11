@@ -4,7 +4,6 @@ import { CrownOutlined, ThunderboltOutlined, RocketOutlined } from '@ant-design/
 import { api } from '../../api/client';
 import { Sku } from '../../types';
 import { usePricing } from '../../contexts/PricingContext';
-import { useSidebar } from '../../contexts/SidebarContext';
 import { track } from '../../utils/analytics';
 
 // 阶段一承接：支付未接入前，用户点「购买」引导加微信预约。
@@ -26,7 +25,6 @@ const SKU_META: Record<string, { desc: string; icon: ReactNode; highlight?: bool
 
 export default function PaywallModal() {
   const { paywallOpen, closePaywall, credits, isSubscribed } = usePricing();
-  const { openSettings } = useSidebar();
   const [skus, setSkus] = useState<Sku[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -78,11 +76,6 @@ export default function PaywallModal() {
     });
   };
 
-  const useOwnKey = () => {
-    closePaywall();
-    openSettings();
-  };
-
   return (
     <Modal open={paywallOpen} onCancel={closePaywall} footer={null} width={600} centered destroyOnClose title="升级 OfferPilot 领航员">
       {isSubscribed ? (
@@ -109,11 +102,11 @@ export default function PaywallModal() {
                 style={{
                   display: 'flex', alignItems: 'center', gap: 16,
                   padding: '12px 16px', borderRadius: 10,
-                  border: meta.highlight ? '1px solid #c9a44c' : '1px solid #e5e7eb',
-                  background: meta.highlight ? '#fdf6e3' : '#fff',
+                  border: meta.highlight ? '1px solid var(--color-gold)' : '1px solid #e5e7eb',
+                  background: meta.highlight ? 'var(--color-gold-light)' : '#fff',
                 }}
               >
-                <span style={{ fontSize: 22, color: '#c9a44c' }}>{meta.icon}</span>
+                <span style={{ fontSize: 22, color: 'var(--color-gold)' }}>{meta.icon}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <Typography.Text strong>{sku.name}</Typography.Text>
@@ -129,11 +122,6 @@ export default function PaywallModal() {
         </Space>
       )}
 
-      <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid #f0f0f0', textAlign: 'center' }}>
-        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-          已有自己的 API Key？<a onClick={useOwnKey}>使用自己的模型</a> —— 不限次数，费用自理
-        </Typography.Text>
-      </div>
     </Modal>
   );
 }

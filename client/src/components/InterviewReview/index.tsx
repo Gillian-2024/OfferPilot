@@ -628,7 +628,7 @@ export default function InterviewReview({ settings, onGotoJD, viewMode = 'prep' 
   return (
     <div className="tab-content">
       <div className="interview-layout">
-        {/* 左：对照 JD + 简历摘要（只读钉住，手机端默认折叠） */}
+        {/* 右：对照 JD + 简历摘要（只读钉住，手机端默认折叠）—— 视觉位置由 CSS order 控制 */}
         <aside className="interview-sidebar">
           {hasContext ? (
             <>
@@ -799,7 +799,7 @@ export default function InterviewReview({ settings, onGotoJD, viewMode = 'prep' 
           </Card>
         </aside>
 
-        {/* 右：面试对话区 */}
+        {/* 中：面试对话区（核心交互，视觉居中） */}
         <main className="interview-chat">
           {/* 顶部栏：Welcome 左对齐 + 功能按钮右对齐（同一行） */}
           <div className="ir-top-bar">

@@ -59,3 +59,13 @@ cd client && npx tsc --noEmit   # 前端类型检查（勿在 server/ 跑 npx ts
 ## 渐进演进
 
 harness 是错误驱动的：规则从真实踩坑沉淀，不预建。新安全洞修复后 → 补对应 harness-check 规则 → 记入 safety.md / verify.md 变更记录。
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

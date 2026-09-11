@@ -1,15 +1,21 @@
 # OfferPilot 领航员
 
-> **状态：WIP · 进行中**（2026-08-23）
-> 当前为端到端跑通的 MVP（Vite + Express + localStorage），正在迁移到 Next.js + Supabase + Vercel 上线全栈架构。
+> **状态：架构已迁移 · 本地已跑通 · 面向国内上线**（2026-09-09）
+> 数据层已从海外 Supabase（PostgREST + RLS + Supabase Auth）整体迁移到**原生 PostgreSQL + 国内自有 JWT**（`pg` + `bcryptjs` + `jose`），前端体验不变。
 > - 产品定位与能力：见 [`docs/prd.md`](docs/prd.md)
-> - 迁移施工蓝图（P1-P7 路线图）：见 [`docs/tech-architecture.md`](docs/tech-architecture.md)
-> 下方「技术栈 / 部署」描述的是**当前 MVP**，迁移完成后会更新。
+> - 技术实现 / 表结构 / 迁移脚本：见 [`docs/tech-architecture.md`](docs/tech-architecture.md)
+> - 数据库：Docker 自建 PostgreSQL（本机 OrbStack，生产 ECS 同构）。本地已跑通 `db/apply` → `migrate-auth` → `verify` + `npm run dev`。
 
 面向应届生校招的求职辅助应用，核心人设 **AI 策略 PM**（应届生 + 大厂 PM 双视角）：
 - 拆 JD = 拆需求文档
 - 评简历 = 评审产品方案
 - 复盘面试 = 复盘产品答辩
+
+## 核心原则（CORE PRINCIPLE）
+
+**非用户明确说明的技术架构决策，一律按「长期主义 + 一步到位」执行**：直接做最终形态，不写"先上线再迁移"的桥接、不留半成品脚手架、不并置多套单一真相（如两份 prompt / 双 DB 后端）。凡用户没有明确说「先用 X / 先跑通」，默认选长期正确的那一项，一步到位做好；删死代码、合并多套实现到唯一来源。变更仍遵守破坏性 / 删前确认护栏。
+
+产品面向**国内校招用户**，故基础架构以**国内数据落地**为最终形态（国内数据库 + 国内认证），不选用海外免费方案的"先跑通再迁"路径。
 
 ## 四大能力
 
@@ -24,40 +30,42 @@
 
 ## 技术栈
 
-- 前端：React + Vite + TypeScript + Ant Design + React Router
-- 后端：Node.js + Express（ESM）
-- AI：Vercel AI SDK（`ai` + `@ai-sdk/openai` / `@ai-sdk/anthropic` / `@ai-sdk/openai-compatible`），多模型可切换，`generateObject` + zod 强制 JSON 契约
+- 前端：Next.js 16 App Router 包裹（`app/` 提供 `/api/*`、`/login`、分享页）；主界面为 Vite + React + TypeScript + AntD（`client/`，经 Next catch-all 挂载）
+- 后端：Next.js Route Handlers（Node.js runtime）+ `pg`（node-postgres）原生参数化 SQL
+- 数据库：PostgreSQL（Docker 自建，本机 OrbStack / 生产 ECS 同构 `db/docker-compose.yml`）；JSON 列用 `jsonb`
+- 认证：**国内自有** `jose` HS256 JWT（httpOnly cookie `op_session`）+ `bcryptjs` 密码哈希；弃用 Supabase Auth / RLS
+- AI：Vercel AI SDK（`ai` + `@ai-sdk/anthropic` / `@ai-sdk/openai` / `@ai-sdk/openai-compatible`），多模型可切换，`generateObject` + zod 强制 JSON 契约
 - 文件解析：`unpdf`（PDF）+ `mammoth`（Word）+ `cheerio`（HTML）
 - 流式：SSE（fetch streaming 消费，POST + header 透传）
-- 存储：浏览器 localStorage（结果 + 对话 + 设置，无后端数据库）
-- 分享：后端轻量文件存储 + 短链
+- 分享：PostgreSQL `shares` 表持久化（短链，未登录可读）
 
 ## 目录结构
 
 ```
 OfferPilot/
-├── package.json            # root：concurrently 同时跑前后端
-├── .env.example
-├── server/                 # 后端
-│   └── src/
-│       ├── index.js        # Express 入口
-│       ├── providers/      # 多模型 Provider 工厂（AI SDK 统一）
-│       ├── parsers/        # 文件解析（PDF/Word/HTML/TXT/Markdown）
-│       ├── prompts/        # 分步 prompt 链 + zod schema
-│       │   ├── base.js     # 共享 System 底座（AI 策略 PM 人设）
-│       │   ├── jd.js       # JD 拆解 3 节点
-│       │   ├── resume.js   # 简历拆解 4 节点 + 改写
-│       │   └── interview.js# 面试复盘 system + 混合模式
-│       ├── routes/         # analyze/chat/upload/share/model(配置探测)
-│       ├── store/          # 分享存储
-│       └── utils/          # config(双轨制) + sse
-└── client/                 # 前端
-    └── src/
-        ├── api/            # API client + SSE 流消费
-        ├── store/          # localStorage + 四 Tab 联动
-        ├── types/          # JSON 契约类型
-        ├── components/     # Layout / Settings / shared / 四 Tab
-        └── pages/          # SharePage
+├── package.json            # Next 16 入口；dev/build/start/typecheck + build:client
+├── proxy.ts                # 路由保护（Next 16 middleware 替代）：jose 校验 op_session，未登录跳 /login 或 401
+├── app/                    # Next App Router 全栈
+│   ├── api/                # 业务路由（analyze/chat/upload/share/auth/billing/pay/admin/folders/projects/history/invites/orders/payload/growth/model...）
+│   ├── login/  register/  privacy/  terms/   # 无 JS 壳页（交给 client）
+│   └── [[...path]]/        # catch-all：其他路径挂载 client 构建产物
+├── client/                 # 前端 SPA（Vite + React + AntD），四 Tab + 设置 + 分享
+├── lib/
+│   ├── ai/                 # AI SDK 封装（providers/harness/schemaShape/jsonExtract/entitlements/sse/analytics/contentBoundary）
+│   ├── auth/               # jwt.ts(jose 签/验) · password.ts(bcryptjs)
+│   ├── db/                 # 原生 pg 数据层：pool/user/guards/credits/entitlement/auth(会话 cookie)
+│   ├── kb/                 # 提示词知识库（jd/resume/interview/growth/base）+ 隔离加载
+│   └── parsers.ts  id.ts   # 多格式解析 · id 生成
+├── db/                     # 数据库自建 + 迁移脚本
+│   ├── docker-compose.yml  # Docker 自建 PG16（127.0.0.1:5432，pgdata 卷，healthcheck）
+│   ├── schema.sql          # 面向普通 PG 的建表 DDL（无 RLS/policy）
+│   ├── apply.mjs           # 应用 schema.sql（幂等 create if not exists）
+│   ├── migrate-auth.mjs    # 加 password_hash 列 + 从 auth.users 镜像 bcrypt 哈希
+│   ├── verify.mjs          # 只读验收（8 表 + password_hash 列 + SKU 种子）
+│   └── backup.sh restore.sh # pg_dump / psql 本机容器备份恢复
+├── server/                 # ⚠️ 已弃用的 Express 后端（死代码，仅保留数据：offer-pilot.db + share-store）
+├── scripts/                # 校验脚本（test-knowledge-loader/multi-format/verify-knowledge-prod/harness-check）
+└── docs/                   # prd.md · tech-architecture.md · harness/ · legal/
 ```
 
 ## 启动
@@ -66,33 +74,35 @@ OfferPilot/
 
 ```bash
 cd OfferPilot
-npm run install:all   # 装 server + client 依赖
-npm install          # 装 root 的 concurrently
+npm install                 # root（Next + libs）
+cd client && npm install && cd ..   # Vite SPA
 ```
 
-### 2. 配置 API Key
+### 2. 配置环境变量（.env.local）
+
+至少填：`DATABASE_URL`、`JWT_SECRET`、`DEFAULT_PROVIDER` + 一个 provider 的 key。
+
+- `DATABASE_URL`：PostgreSQL 连接串（本地 Docker 自建 = `postgres://****@127.0.0.1:5432/offerpilot`；生产 = 自建容器或阿里云 RDS）
+- `JWT_SECRET`：jose 签/验 HS256 会话 cookie 用（务必随机长串）
+- `ADMIN_USERNAMES`：管理员邮箱白名单（逗号分隔，空=无人有权限）
+- provider：`OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `DOMESTIC_API_KEY`（智谱/通义/DeepSeek，OpenAI 兼容协议），`DEFAULT_PROVIDER` 决定默认
+
+### 3. 初始化 / 迁移数据库
 
 ```bash
-cp .env.example server/.env
-# 编辑 server/.env，至少填一个 provider 的 key
+node db/apply.mjs            # 建表（幂等）+ SKU 种子
+node db/migrate-auth.mjs     # 加 public.users.password_hash；有 auth.users 则镜像 bcrypt 哈希
+node db/verify.mjs           # 只读验收：8 表 + password_hash 列 + SKU 种子
 ```
 
-支持三个 provider，任选其一（也可在前端「模型配置」面板覆盖）：
-- `openai`：`OPENAI_API_KEY`
-- `claude`：`ANTHROPIC_API_KEY`
-- `domestic`：`DOMESTIC_API_KEY`（智谱/通义/DeepSeek，OpenAI 兼容协议）
-
-`DEFAULT_PROVIDER` 决定默认用哪个。
-
-### 3. 启动
+### 4. 启动
 
 ```bash
 npm run dev
-# 前端：http://localhost:5173
-# 后端：http://localhost:8787
+# Next（含 /api）：http://localhost:3000
 ```
 
-浏览器打开 http://localhost:5173 即可使用。
+浏览器打开 http://localhost:3000 即可使用。`npm run build` = `build:client && next build`（Vite 产物由 Next catch-all 托管）。
 
 ## 双轨制 Key
 
@@ -111,10 +121,10 @@ npm run dev
 
 ## 硬约束（不可违背）
 
-- **知识库隔离**：所有路由必须通过 `knowledge-loader.js` 加载提示词，禁止直接 import `prompts/*.js`。
+- **知识库隔离**：所有路由必须通过 `lib/kb/base.ts`（loader）加载提示词，禁止直接 import `lib/kb/jd.ts` / `resume.ts` / `interview.ts` / `growth.ts` 等业务模块。
   - 验证：`node scripts/test-knowledge-loader.js`（自动检查 + 导出完整性校验）
-  - 部署前门禁：`node scripts/verify-knowledge-prod.js`（生产模式解密后函数 / zod / analyze 全链验证，需 KNOWLEDGE_KEY）
-  - 或：`grep -r "from '../prompts/" server/src/routes/` → 必须空输出
+  - 部署前门禁：`node scripts/verify-knowledge-prod.js`（生产模式解密后函数 / zod / analyze 全链验证，需 `KNOWLEDGE_KEY`）
+  - 或：`grep -r "from \"@/lib/kb/jd\"" app lib --include='*.ts'` → 除 `lib/kb/base.ts` 外必须空输出
 - **多格式上传**：`/api/upload` 支持 PDF、Word(.docx)、HTML、Markdown(.md)、TXT 五种格式解析。
   - 验证：`node scripts/test-multi-format.js`（5 格式提取 + MIME→extension 回退）
 
@@ -153,12 +163,11 @@ JD 拆解和简历拆解**不是彼此独立**——简历拆解以 JD 拆解结
 - 每步 `generateObject` + zod schema 强制 JSON 契约
 - 推断标 `[推测]`、数据存疑标 `[需本人确认]`
 
-## 生产部署（可选）
+## 国内上线（进行中）
 
-```bash
-cd client && npm run build   # 产物在 client/dist
-cd ../server && npm start    # 后端自动托管 client/dist
-# 访问 http://localhost:8787
-```
+- 部署：Next 16 托管 API + 主界面；Vite SPA 构建产物由 Next catch-all 托管。
+- 数据库：Docker 自建 PostgreSQL（本机 OrbStack 跑通；生产 ECS 同 `db/docker-compose.yml` 或换阿里云 RDS）——`DATABASE_URL` 重指 + 数据拷贝；无查询层改动，只换连接串。
+- 认证：国内自有 `jose` JWT + `bcryptjs`，不依赖 Supabase Auth / 邮件确认。
+- 域名：面向国内需 ICP 备案（备案墙为产品核心原则，见上方 CORE PRINCIPLE）。
 
-仅本地自用时无需部署，`npm run dev` 即可。
+> 本地自用无需部署，`npm run dev` 即可；数据库已是本地 Docker 自建（见顶部状态）。

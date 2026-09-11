@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
   <!-- 加粗金环(16px 不糊) -->
-  <circle cx="32" cy="32" r="29" stroke="#b8860b" stroke-width="5"/>
+  <circle cx="32" cy="32" r="29" stroke="#c9a44c" stroke-width="5"/>
   <!-- 藏蓝底(与金环贴合,实心徽章) -->
   <circle cx="32" cy="32" r="26.5" fill="#14273f"/>
   <!-- 学士帽 · 帽身 -->

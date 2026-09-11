@@ -1,11 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Tabs } from 'antd';
 import { ThunderboltOutlined, FileTextOutlined, RocketOutlined, BookOutlined, RobotOutlined } from '@ant-design/icons';
-import { getSettings, setSettings as saveSettings } from '../../store/local';
-import { Settings } from '../../types';
+import { getSettings } from '../../store/local';
 import { useSidebar } from '../../contexts/SidebarContext';
-import { api } from '../../api/client';
 import SettingsPanel from '../Settings/SettingsPanel';
 import AuthModal from '../Auth/AuthModal';
 import PaywallModal from '../Pricing/PaywallModal';
@@ -18,38 +16,10 @@ import InterviewReview from '../InterviewReview';
 import { track } from '../../utils/analytics';
 
 export default function Layout() {
-  const [settings, setSettingsState] = useState(getSettings);
+  const [settings] = useState(getSettings);
   const [activeKey, setActiveKey] = useState('jd');
-  const [modelStatus, setModelStatus] = useState<'checking' | 'ok' | 'missing' | 'error'>('checking');
-  const [modelError, setModelError] = useState('');
-  const [modelChecked, setModelChecked] = useState('');
-  const checkSeq = useRef(0);
 
   const { settingsOpen, closeSettings, authModalOpen, closeAuthModal } = useSidebar();
-
-  const handleSave = (s: Settings) => {
-    saveSettings(s);
-    setSettingsState(s);
-    closeSettings();
-  };
-
-  // 启动 / 保存设置后探测模型配置（服务端 1-token 最小调用，验证 Key / 网关 / 配额）
-  useEffect(() => {
-    const seq = ++checkSeq.current;
-    setModelStatus('checking');
-    api.checkModel(settings)
-      .then((r) => {
-        if (seq !== checkSeq.current) return;
-        setModelStatus(r.status);
-        setModelError(r.status === 'error' ? r.error || '未知错误' : '');
-        setModelChecked(r.status === 'ok' ? r.model || '' : '');
-      })
-      .catch((e) => {
-        if (seq !== checkSeq.current) return;
-        setModelStatus('error');
-        setModelError(e.message || '检测服务不可用');
-      });
-  }, [settings]);
 
   const items = [
     {
@@ -97,7 +67,7 @@ export default function Layout() {
       label: (
         <span>
           <RobotOutlined className="mr-4" />
-          陪练
+          专属陪练
         </span>
       ),
       children: null,
@@ -107,7 +77,7 @@ export default function Layout() {
   return (
     <div className="app-shell">
       <nav className="sidebar-nav">
-        <Sidebar modelStatus={modelStatus} modelChecked={modelChecked} modelError={modelError} />
+        <Sidebar />
       </nav>
       <div className="right-side">
         <Tabs
@@ -130,7 +100,7 @@ export default function Layout() {
           <Link to="/terms">用户协议</Link>
         </footer>
       </div>
-      <SettingsPanel open={settingsOpen} onClose={closeSettings} settings={settings} onSave={handleSave} />
+      <SettingsPanel open={settingsOpen} onClose={closeSettings} settings={settings} />
       <AuthModal open={authModalOpen} onClose={closeAuthModal} />
       <PaywallModal />
       <GlobalFeedback />

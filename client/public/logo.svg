@@ -1,16 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
   <!-- 外圈金色圆环 -->
-  <circle cx="32" cy="32" r="29" stroke="#b8860b" stroke-width="3.5"/>
+  <circle cx="32" cy="32" r="29" stroke="#c9a44c" stroke-width="3.5"/>
   <!-- 藏蓝圆盘 -->
   <circle cx="32" cy="32" r="24" fill="#14273f"/>
   <!-- 圆盘内细金环(校徽双环感) -->
-  <circle cx="32" cy="32" r="21" stroke="#b8860b" stroke-width="1" opacity="0.55"/>
+  <circle cx="32" cy="32" r="21" stroke="#c9a44c" stroke-width="1" opacity="0.55"/>
   <!-- 学士帽 · 帽身(先画,被帽板压住上缘) -->
   <path d="M 25 30 L 39 30 L 39 40 Q 32 44.5 25 40 Z" fill="#fbf3dc"/>
   <!-- 学士帽 · 帽板(菱形,藏蓝描边与帽身分隔) -->
   <path d="M 32 21 L 46 27.5 L 32 34 L 18 27.5 Z" fill="#fbf3dc" stroke="#14273f" stroke-width="1.2" stroke-linejoin="round"/>
   <!-- 帽顶纽扣 -->
-  <circle cx="32" cy="27.5" r="1.3" fill="#b8860b"/>
+  <circle cx="32" cy="27.5" r="1.3" fill="#c9a44c"/>
   <!-- 流苏:从帽板右角垂下 -->
   <path d="M 46 27.5 C 47.8 29.5 48 32 47.6 35" stroke="#fbf3dc" stroke-width="1.6" stroke-linecap="round"/>
   <!-- 流苏穗头 -->

@@ -1,22 +1,37 @@
 {
   "name": "offer-pilot",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "description": "应届生校招求职辅助 · JD拆解/简历拆解/面试复盘",
+  "description": "应届生校招求职辅助 · JD拆解/简历拆解/面试复盘 (Next.js App Router + Supabase + Vercel)",
   "type": "module",
   "scripts": {
-    "dev": "concurrently -n server,client -c magenta,cyan \"npm:dev:server\" \"npm:dev:client\"",
-    "dev:server": "cd server && npm run dev",
-    "dev:client": "cd client && npm run dev",
-    "install:all": "cd server && npm install && cd ../client && npm install",
-    "build": "cd client && npm run build",
-    "test": "cd server && node --test",
-    "check": "node scripts/harness-check.js"
+    "dev": "next dev",
+    "build": "npm run build:client && next build",
+    "build:client": "cd client && npm run build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit"
   },
-  "allowScripts": {
-    "better-sqlite3": true
+  "dependencies": {
+    "@ai-sdk/anthropic": "^4.0.49",
+    "@ai-sdk/openai": "^4.0.60",
+    "@ai-sdk/openai-compatible": "^3.0.44",
+    "ai": "^7.0.93",
+    "bcryptjs": "^3.0.3",
+    "cheerio": "^1.2.0",
+    "jose": "^6.2.12",
+    "mammoth": "^1.12.2",
+    "next": "16.3.4",
+    "pg": "^8.23.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "unpdf": "^1.8.1"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "@types/node": "^22.0.0",
+    "@types/pg": "^8.23.1",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.5.4"
   }
 }

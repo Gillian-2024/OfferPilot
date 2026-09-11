@@ -1,170 +1,114 @@
-# OfferPilot 领航员 App 技术实现文档（施工蓝图 v1）
+# OfferPilot 领航员 — 技术实现（当前架构）
 
-> 状态：draft · 2026-08-22
-> 定位：自用工具 + 简历项目条目，架构**预留上线全栈完整**（鉴权 + DB + 部署），分享可用；**不做**商业化 / 获客 / 支付 / 多租户 / 合规。
-> 迁移路径：A（Vite+Express → Next.js App Router + Supabase + Vercel）。
-
----
-
-## 1. 产品定位与技术目标
-
-### 1.1 产品定位
-- **自用 + 简历项目**。分享可用（别人能登录用）。不商业化、不获客、无支付 / 多租户 / 合规。
-- 三能力（JD 拆解 / 简历拆解 / 面试复盘）**各自做深**。
-- 差异点：个人 AI 策略 PM 知识 + 记忆，在垂类（应届校招求职辅导）的不可替代性。
-
-### 1.2 技术目标
-- 架构对标"可上线 App"：鉴权 + 持久化 DB + 文件存储 + 部署，全栈完整。
-- 功能边界 demo 级：三能力做深即可，不扩商业化能力。
-- 预留性：选主流生产范式（Next.js + Supabase + RLS + Vercel），未来若转产品不需重做架构。
+> 状态：**已迁移 · 面向国内上线**（2026-09-08）
+> 早期「Vite+Express+localStorage」与「Next+Supabase+RLS」蓝图已被**原生 PostgreSQL + 国内自有 JWT** 取代。本文反映现库真实结构，Supabase 方案仅留作历史备注（见文末）。
+> 产品定位/能力见 [`prd.md`](prd.md)。
 
 ---
 
-## 2. 技术架构总览
+## 1. 架构总览
 
 ```
-┌─ Client（Next.js App Router，部署于 Vercel）─────────────┐
-│  React 19 + TypeScript + AntD 5                           │
-│  Supabase JS SDK（auth + db + storage + realtime）        │
-│  RLS 直连 DB（省手写后端 API）                             │
-└──────────────────┬────────────────────────────────────────┘
-                   │ Route Handlers（app/api/*）
-                   │   /api/analyze   AI：JD / 简历拆解
-                   │   /api/chat      AI：面试复盘 SSE
-                   │   /api/upload    → Supabase Storage
-┌─ Server-side ────┴────────────────────────────────────────┐
-│  Vercel AI SDK v7（generateText + schemaShape + extract）  │ ← 直接搬现有
-│  模型：glm-5.2（server env，不暴露前端）                    │
-│  Supabase（PostgreSQL + Auth + Storage + RLS）             │
-└────────────────────────────────────────────────────────────┘
+┌─ Next.js 16 App Router（Node.js runtime）──────────────┐
+│  proxy.ts            路由保护（jose 验 op_session cookie）│
+│  app/api/*           Route Handlers（原生 pg 参数化 SQL） │
+│  app/[[...path]]     catch-all → 挂载 Vite SPA 构建产物   │
+└──────────────┬─────────────────────────────────────────┘
+               │  node:postgres (pg)
+┌──────────────▼─────────────────────────────────────────┐
+│  PostgreSQL（Docker 自建：本机 OrbStack + ECS 同构/或 RDS）│
+│  users / folders / projects / history / invites         │
+│  analytics_events / skus / orders / shares              │
+│  无 RLS：所有行级隔离在 SQL 里显式 WHERE user_id = $1     │
+└─────────────────────────────────────────────────────────┘
+               ▲
+┌──────────────┴─────────────────────────────────────────┐
+│  认证：jose HS256 JWT（cookie op_session）+ bcryptjs     │
+│  AI：Vercel AI SDK 多模型（glm-5.2 等）+ generateObject │
+└────────────────────────────────────────────────────────┘
 ```
 
-四件套各解一痛：Next.js 全栈一体 · Vercel AI SDK 统一多模型 · Supabase 省 BaaS · Vercel 部署零配置。
+**一句话**：数据层弃用 PostgREST / RLS / Supabase Auth，改用 `pg` 原生参数化 SQL + `jose` 自签 JWT + `bcryptjs`；数据库换到国产 PG（Docker 自建 / 阿里云 RDS）只改连接串，无查询层改动。
 
 ---
 
-## 3. 现有 MVP 资产盘点（2195 行）
+## 2. 数据模型（schema.sql §1–§9）
 
-| 资产 | 现位置 | 迁移处置 |
-|---|---|---|
-| prompts/\*.js（jd / resume / interview / base） | server/src/prompts/ | **直接搬**（纯逻辑，无框架依赖）|
-| providers/index.js（Provider 工厂） | server/src/providers/ | **直接搬** |
-| utils/schemaShape.js + jsonExtract.js | server/src/utils/ | **直接搬**（绕 tool_use 的核心资产）|
-| routes/analyze.js（generateText 调用） | server/src/routes/ | 改 Route Handler，逻辑搬 |
-| routes/chat.js（SSE） | server/src/routes/ | 改 Route Handler streaming |
-| routes/upload.js（multer） | server/src/routes/ | 改 Supabase Storage |
-| routes/share.js（短链） | server/src/routes/ | 改 Supabase DB |
-| store/local.ts（localStorage） | client/src/store/ | **重写** → Supabase DB + RLS |
-| 组件（JD / Resume / Interview / Layout / Settings） | client/src/components/ | 加 `'use client'` 复用 |
-| types/index.ts | client/src/types/ | 搬 + 加 DB schema 类型 |
+全部业务 id 为 `text`（`nanoid(12)`）；`analytics_events.id` 自增 `bigint`。JSON 列用 `jsonb`。
 
-**核心判断**：可搬资产占大头（prompts / providers / utils / 组件），真正重写的是数据层 + 路由层。generateText / schemaShape 绕 tool_use 的坑（端到端打通要点，见 auto-memory `project-campus-job-coach`）在新框架行为一致（纯函数），仅 streaming 写法变。
-
----
-
-## 4. 数据模型设计（Supabase PostgreSQL + RLS）
-
-### 4.1 表
-
-| 表 | 主键 | 关键字段 | RLS 策略 |
+| 表 | 主键 | 关键字段 | 说明 |
 |---|---|---|---|
-| profiles | id（FK→auth.users） | email, created_at | 用户读自己 |
-| jd_analyses | id | user_id, input_text, result_json, created_at | `user_id = auth.uid()` |
-| resume_analyses | id | user_id, jd_analysis_id, input_text, result_json, requirement_gaps, created_at | `user_id = auth.uid()` |
-| interview_sessions | id | user_id, messages_json, created_at, updated_at | `user_id = auth.uid()` |
-| share_links | id | user_id, resource_type, resource_id, slug(nanoid), created_at | 创建者写；持 slug 者读关联资源 |
+| users | id | username(存email, unique), **password_hash**(bcrypt), nickname, credits, capabilities(jsonb), plan_expires_at | 权益+登录凭证合一 |
+| folders | id | name, user_id, sort_order | 侧边栏文件夹 |
+| projects | id | name, folder_id, user_id | 项目/文件夹归属 |
+| history | id | user_id, type, title, data(jsonb), provider, model, project_id | 分析产物 |
+| invites | id | **code(unique)**, user_id, click_count | 邀请码+点击数 |
+| analytics_events | id | device_id, user_id, event, path, extra(jsonb), ts, ua, screen | 打点 |
+| skus | id(code) | name, price_cents, credits, capabilities(jsonb), duration_days, active, sort_order | 3 种子：single/monthly/jobpass |
+| orders | id | user_id, sku_code, amount_cents, status, channel, out_trade_no, paid_at | 订单 |
+| shares | id | type, title, content(jsonb), user_id, created_at | 分享短链 |
 
-### 4.2 RLS 原则
-- 业务表 `user_id = auth.uid()` 才能读写（用户数据隔离）。
-- share_links 持 slug 可读关联资源（分享能力）。
-- service_role key 仅服务端（已落 server/.env，不入前端），绕 RLS 做管理操作。
-
----
-
-## 5. 鉴权设计
-- Supabase Auth（邮箱 magic link 或 GitHub OAuth）。
-- 登录才能用三能力（demo 不做匿名）。
-- middleware 保护 `/jd` `/resume` `/interview`，未登录跳 `/login`。
-- session 走 Supabase cookie（SSR 友好）。
+> **无 RLS**：弃用 Supabase 行级授权，行隔离在业务 SQL 显式 `WHERE user_id = $1`。见 §5 各路由做法。
 
 ---
 
-## 6. 三能力"做深"方向（⚠️ 待你拍板，不阻塞 P1–P3）
+## 3. 认证（jose + bcryptjs）
 
-> 你说三能力各自做深，具体方向未给。下面是基于业务理解列出的候选，标 ⚠️ 待确认。
-
-### 6.1 JD 拆解做深
-- ⚠️ A：一次性结构化 → 支持多 JD 横向对比岗位差异
-- ⚠️ B：JD 关键词 → 岗位画像沉淀（用户积累的 JD 库做趋势分析）
-- ⚠️ C：JD ↔ 简历对照更细（requirement_gaps 已有，加改写建议优先级）
-
-### 6.2 简历拆解做深
-- ⚠️ A：逐段改写 1 版 → 多版本对比（A/B/C 改写 + 评分）
-- ⚠️ B：简历版本管理（同岗位多版沉淀）
-- ⚠️ C：ATS 优化评分（关键词命中率量化）
-
-### 6.3 面试复盘做深
-- ⚠️ A：模拟追问单轮 → 多轮深挖（追问树）
-- ⚠️ B：复盘报告沉淀（弱点清单 + 再练推荐）
-- ⚠️ C：岗位题库（基于 JD 生成针对性问题）
-
-### 6.4 差异点落地（个人知识 + 记忆注入）
-候选路径：
-- (1) system prompt 注入个人方法论（如需求分析方法论）
-- (2) RAG 个人知识库（Supabase pgvector）
-- (3) few-shot 个人案例
-⚠️ 待确认走哪条 / 组合。
+- **会话 cookie**：`op_session`（httpOnly / sameSite lax / secure(prod) / maxAge 30d），载荷 `{ userId, email }`，`jose` HS256 签名（`JWT_SECRET`）。
+- **密码**：`bcryptjs` 哈希存 `users.password_hash`；兼容 Supabase `auth.users.encrypted_password` 的 `$2a/$2b/$2y`，可原样镜像。
+- **密钥映射**：JWT 载荷 key 为 `userId`；应用层 `getAppUser`/`ensureAppUser` 期望 `{ id, email? }` → 数据层读取处做一次映射 `{ id: session.userId, email }`。
+- **路由保护**：`proxy.ts` 校验 cookie；非公共路径未登录 → API 返 401 JSON / 页面跳 `/login`；守卫 `lib/db/guards.ts`（`requireAuthRoute` / `requireAdminRoute`，管理员 = `ADMIN_USERNAMES` 白名单）。
+- **公共路径**（免登）：`/api/auth/*`、`/api/billing/skus`、`/api/analytics/batch`、`/api/share/:id GET`、`/share/*`、`/login`、`/register`、`/privacy`、`/terms`。
+- 认证路由：`/api/auth/{login,register,me,logout}`（无邮件确认，注册即写 `password_hash`）。
 
 ---
 
-## 7. 迁移路线图（分阶段）
+## 4. 数据层（原生 pg）
 
-| 阶段 | 内容 | 验收 | 预估 |
-|---|---|---|---|
-| P1 骨架 | 初始化 Next.js 16 + Supabase client + Vercel AI SDK，跑通 hello | 本地 dev 起 | 0.5 session |
-| P2 搬逻辑 | prompts / providers / utils / schemaShape / extract 搬入，analyze Route Handler 跑通 JD 3 步 | 端到端 JD 拆解绿 | 1 session |
-| P3 数据层 | 建 Supabase 表 + RLS，store/local → DB，简历 4 步 + 对照持久化 | 登录后数据落库 | 1 session |
-| P4 Auth | Supabase Auth + middleware，路由保护 | 未登录跳登录 | 0.5 session |
-| P5 面试复盘 | chat Route Handler streaming 搬入 | SSE 对话跑通 | 0.5 session |
-| P6 部署 | Vercel 部署 + env + 域名 | 公网可访问 | 0.5 session |
-| P7 三能力做深 | 按你拍板的方向逐项 | 逐项验收 | 待定 |
-
----
-
-## 8. 部署方案
-
-- **Vercel**（免费 tier 够 demo）：关联 GitHub `Gillian-2024/OfferPilot`，main 自动部署。
-- 环境变量配置（双轨）：
-  - **本机自用**（本地 `.env.local`，不入 git）：自定义 `.env` 配置，provider + base URL + model 按需填写
-  - **上线部署**（dashboard 配，不入 git）：选择公开 API（如智谱/通义/OpenAI），填写对应 key + 端点
-  - Supabase 三项（URL / anon / service_role）本机与上线都配
-- ✅ **provider 已定（2026-08-22）**：上线走**智谱官方 API**（公网可达），本机可用自定义网关（如内部 LLM 服务）
-  - 关键利好：智谱官方端点直接提供 `glm-5.2` 模型 ID（与内部网关映射的 `tencent/glm-5.2` 同源），**provider 切换无缝**——仅端点 + key 变，模型名不变，现有 prompt / schemaShape 调用链零改动。
-  - 智谱 API 为 OpenAI 兼容端点（`/chat/completions` + Bearer auth），用 `@ai-sdk/openai-compatible` 接入（现有 server 已有此包）。
-  - 升级可选：GLM-5.3 已于 2026-08-19 上线 API（编程 / 智能体更强，定价与 5.2 一致）；保守沿用 5.2 上线，验证后再升。
+- `lib/db/pool.ts`：`pg` 连接池单例 `getPool()` + `q<T>` / `qOne<T>` 封装；`PGSSL=disable` 可关 ssl（本地 Docker PG 无 SSL 时置 `disable`；生产 RDS 用 `require` 或删除该行）。
+- **写 JSON 列**：payload `JSON.stringify` + `::jsonb` 强转；pg 读回为对象。
+- **迁移脚本（`db/`）**：
+  | 脚本 | 作用 | 幂等 |
+  |---|---|---|
+  | `docker-compose.yml` | Docker 自建 Postgres 16（`127.0.0.1:5432`，`pgdata` 卷，healthcheck） | ✅ |
+  | `schema.sql` | 建表 DDL（`create table if not exists`）+ SKU 种子（`on conflict do nothing`） | ✅ |
+  | `apply.mjs` | 应用 schema.sql + 8 表/SKU 自检 | ✅ |
+  | `migrate-auth.mjs` | 加 `users.password_hash` 列；有 `auth.users` 则镜像 bcrypt 哈希；报告无哈希用户 | ✅ |
+  | `verify.mjs` | 只读验收：8 表 count + password_hash 列 + SKU 种子 | ✅（只读）|
+  | `backup.sh` / `restore.sh` | `pg_dump`/`psql` 本机容器备份恢复（cron 示例见脚本头） | ⏭️ 手动 |
+- 脚本从 `.env.local` 按行读 `DATABASE_URL`，不经 shell source，避免特殊字符被 zsh 展开。
 
 ---
 
-## 9. 安全边界
-- API key / service_role key 仅 server env，不进前端 bundle、不进 git。
-- RLS 用户数据隔离。
-- 限流 demo 简化（Vercel 自然限流 + 后续可加 Upstash）。
-- AI 调用烧钱：登录态 + 基础频控（demo 不做严格商用限流）。
+## 5. 行级隔离做法（替代 RLS）
+
+| 场景 | 做法 |
+|---|---|
+| 用户自己的行 | `WHERE user_id = $1`（user 传 `appUser.id`）|
+| 邀请码跨用户唯一 | `SELECT user_id FROM invites WHERE code=$1`；被他人占用→409 |
+| 订单/历史/项目/文件夹 | 一律 `user_id = $1` + 排序+limit |
+| 公开读 | 仅 `skus(active=1)`、`shares(id)`、`analytics/batch`（匿名埋点）不加 user 条件 |
+| 管理端 | 单一 LEFT JOIN 聚合并按白名单 `isAdmin` 守卫 |
 
 ---
 
-## 10. 不做清单（边界）
-- ❌ 支付 / 订阅
-- ❌ 多租户 / 团队
-- ❌ 商业化获客
-- ❌ 合规审计（demo 级）
-- ❌ 监控告警（Vercel dashboard 够 demo）
+## 6. 部署（国内上线）
+
+- **Next 16** 托管 API + 主 UI；Vite SPA `build:client` 产物由 catch-all 托管。
+- **数据库**：Docker 自建 PostgreSQL（本机 OrbStack + 生产 ECS 同构 `db/docker-compose.yml`）——用 `db/.env` 的 `POSTGRES_*` + 端口仅绑 `127.0.0.1`；生产可换阿里云 RDS，纯连接串更换 + 数据拷贝；无查询层改动。
+- **认证**：国内自有 jose JWT + bcryptjs，不依赖 Supabase Auth。
+- **域名**：面向国内需 ICP 备案（备案墙 = 产品核心原则）。
 
 ---
 
-## 待你确认（不阻塞 P1–P3 施工）
-1. 三能力做深具体方向（§6.1/6.2/6.3 各选 1–2 个）。
-2. 差异点（个人知识 + 记忆）注入方式（§6.4）。
+## 7. 当前状态 / 下一步
 
-✅ 已定（2026-08-22）：
-- §8 provider：上线走智谱官方 API（`glm-5.2` 无缝），本机可用自定义网关。
+- ✅ **已跑通（2026-09-09）**：数据层全路由切原生 `pg`（23 文件/54 查询点）；`jose` 认证贯穿 proxy/guards/auth（17 认证点）；`@supabase/*` 依赖移除；schema.sql 改普通 PG（无 RLS）；tsc `--noEmit` 干净（exit 0）。
+- ✅ **本地数据库已就绪**：Docker 自建 Postgres 16（OrbStack），`db/apply → migrate-auth → verify` 全绿；`PGSSL=disable` 适配本地无 SSL 容器。`npm run dev` 启动无错，`/login` 200，注册接口 200（bcrypt 60 字符落 `password_hash`，积分 `credits` 默认 3）。
+- 🔜 **待办**：#20 国内合法上线链路（备案/域名）；生产 DB 实例（ECS 自建 `db/docker-compose.yml` 或阿里云 RDS）+ 数据拷贝。
+
+---
+
+## 附：Supabase 方案（已废弃，仅历史）
+
+早期蓝图（Vite+Express+localStorage；及 Next+Supabase+RLS+Supabase Auth+邮件确认）已被上文本地 JWT + RDS 方案取代。弃用原因：面向国内数据落地（国内库+国内认证），Supabase 海外免费方案属"先跑通再迁"路径，与「长期主义+一步到位」原则相悖。所需 `auth.users.encrypted_password` 的 bcrypt 哈希已由 `migrate-auth.mjs` 镜像到 `users.password_hash`。
