@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Tabs } from 'antd';
 import { ThunderboltOutlined, FileTextOutlined, RocketOutlined, BookOutlined, RobotOutlined } from '@ant-design/icons';
@@ -19,7 +19,14 @@ export default function Layout() {
   const [settings] = useState(getSettings);
   const [activeKey, setActiveKey] = useState('jd');
 
-  const { settingsOpen, closeSettings, authModalOpen, closeAuthModal } = useSidebar();
+  const { settingsOpen, closeSettings, authModalOpen, openAuthModal, closeAuthModal } = useSidebar();
+
+  // 无落地页：进站直达产品界面，未登录调受保护接口时（API 层广播 auth:required）就地弹注册/登录
+  useEffect(() => {
+    const onAuthRequired = () => openAuthModal();
+    window.addEventListener('auth:required', onAuthRequired);
+    return () => window.removeEventListener('auth:required', onAuthRequired);
+  }, [openAuthModal]);
 
   const items = [
     {

@@ -18,6 +18,7 @@ export async function uploadFile(file: File, settings: Settings) {
   const res = await fetch('/api/upload', { method: 'POST', headers: { ...authHeaders(settings), ...tokenAuthHeaders() }, body: fd });
   if (!res.ok) {
     const e = await res.json().catch(() => ({}));
+    if (res.status === 401) window.dispatchEvent(new CustomEvent('auth:required'));
     throw new Error(e.error || '上传/解析失败');
   }
   return res.json() as Promise<{ text: string; name: string; size: number; chars: number }>;
@@ -37,6 +38,8 @@ export async function* streamSSE(url: string, body: any, settings: Settings): As
     err.code = e.code;
     // 额度耗尽 → 广播事件，PricingContext 监听后弹付费墙（业务组件无需各自处理 403）
     if (e.code === 'QUOTA_EXCEEDED') window.dispatchEvent(new CustomEvent('paywall:open'));
+    // 未登录 → 广播事件，Layout 监听后弹注册/登录框（无落地页，门禁只在动作发生时出现）
+    if (res.status === 401) window.dispatchEvent(new CustomEvent('auth:required'));
     throw err;
   }
   const reader = res.body!.getReader();

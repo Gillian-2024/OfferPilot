@@ -1099,6 +1099,7 @@ a:focus-visible,
 .am-head { text-align: center; margin-bottom: 16px; }
 .am-title { font-size: 20px; font-weight: 700; margin: 0; }
 .am-sub { color: var(--color-text-secondary); font-size: 13px; margin: 4px 0 0; }
+.ant-alert.am-notice { margin-bottom: 16px; }
 .ant-form-item.am-submit-item { margin-bottom: 0; }
 .ant-btn.am-submit-btn { height: 44px; }
 

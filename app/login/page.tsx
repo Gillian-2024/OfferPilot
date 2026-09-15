@@ -68,6 +68,25 @@ export default function LoginPage() {
           </button>
         </div>
 
+        {/* 与 SPA 内 AuthModal 同口径：邮箱只作账号名，无邮箱找回能力。
+            两个注册入口都要写明，否则用户在其中一个入口会得到错误预期。 */}
+        {mode === "register" && (
+          <p
+            style={{
+              margin: 0,
+              padding: "8px 10px",
+              background: "#f0f5ff",
+              border: "1px solid #adc6ff",
+              borderRadius: 6,
+              color: "#333",
+              fontSize: 12,
+              lineHeight: 1.6,
+            }}
+          >
+            邮箱仅作为账号名使用。当前暂不支持通过邮箱找回密码，请妥善保管你的密码。
+          </p>
+        )}
+
         <input
           type="email"
           placeholder="邮箱"

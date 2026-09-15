@@ -8,8 +8,8 @@ interface AuthContextValue {
   loading: boolean;
   isLoggedIn: boolean;
   isAdmin: boolean;
-  login: (username: string, password: string) => Promise<void>;
-  register: (username: string, password: string, nickname?: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, nickname?: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<User | null>;
 }
@@ -53,15 +53,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
   }, [migrateLocalHistory]);
 
-  const login = useCallback(async (username: string, password: string) => {
-    const { user: u } = await authApi.login(username, password);
+  const login = useCallback(async (email: string, password: string) => {
+    const { user: u } = await authApi.login(email, password);
     setUser(u);
     // 登录后迁移本地历史
     await migrateLocalHistory();
   }, [migrateLocalHistory]);
 
-  const register = useCallback(async (username: string, password: string, nickname?: string) => {
-    const { user: u } = await authApi.register(username, password, nickname);
+  const register = useCallback(async (email: string, password: string, nickname?: string) => {
+    const { user: u } = await authApi.register(email, password, nickname);
     setUser(u);
     await migrateLocalHistory();
   }, [migrateLocalHistory]);

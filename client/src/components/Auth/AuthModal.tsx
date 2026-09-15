@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Modal, Tabs, Form, Input, Button, message } from 'antd';
-import { UserOutlined, LockOutlined } from '@ant-design/icons';
+import { Modal, Tabs, Form, Input, Button, message, Alert } from 'antd';
+import { UserOutlined, LockOutlined, MailOutlined } from '@ant-design/icons';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface Props {
@@ -15,10 +15,10 @@ export default function AuthModal({ open, onClose }: Props) {
   const [loginForm] = Form.useForm();
   const [registerForm] = Form.useForm();
 
-  const handleLogin = async (values: { username: string; password: string }) => {
+  const handleLogin = async (values: { email: string; password: string }) => {
     setSubmitting(true);
     try {
-      await login(values.username, values.password);
+      await login(values.email, values.password);
       message.success('登录成功，历史记录已开启云同步');
       loginForm.resetFields();
       onClose();
@@ -29,10 +29,10 @@ export default function AuthModal({ open, onClose }: Props) {
     }
   };
 
-  const handleRegister = async (values: { username: string; password: string; nickname?: string }) => {
+  const handleRegister = async (values: { email: string; password: string; nickname?: string }) => {
     setSubmitting(true);
     try {
-      await register(values.username, values.password, values.nickname);
+      await register(values.email, values.password, values.nickname);
       message.success('注册成功，欢迎使用 OfferPilot 领航员！');
       registerForm.resetFields();
       onClose();
@@ -70,10 +70,13 @@ export default function AuthModal({ open, onClose }: Props) {
             children: (
               <Form form={loginForm} onFinish={handleLogin} layout="vertical" size="large">
                 <Form.Item
-                  name="username"
-                  rules={[{ required: true, message: '请输入用户名' }]}
+                  name="email"
+                  rules={[
+                    { required: true, message: '请输入邮箱' },
+                    { type: 'email', message: '邮箱格式不正确' },
+                  ]}
                 >
-                  <Input prefix={<UserOutlined />} placeholder="用户名" autoComplete="username" />
+                  <Input prefix={<MailOutlined />} placeholder="邮箱" autoComplete="email" />
                 </Form.Item>
                 <Form.Item
                   name="password"
@@ -94,20 +97,28 @@ export default function AuthModal({ open, onClose }: Props) {
             label: '注册',
             children: (
               <Form form={registerForm} onFinish={handleRegister} layout="vertical" size="large">
+                {/* 邮箱当前只作账号名：注册未发验证邮件、users 表无 email_verified，
+                    也没有找回密码端点。不写明会让用户误以为忘密码可以找回。 */}
+                <Alert
+                  className="am-notice"
+                  type="info"
+                  showIcon
+                  message="邮箱仅作为账号名使用"
+                  description="当前暂不支持通过邮箱找回密码，请妥善保管你的密码。"
+                />
                 <Form.Item
-                  name="username"
+                  name="email"
                   rules={[
-                    { required: true, message: '请输入用户名' },
-                    { min: 2, max: 20, message: '用户名 2-20 个字符' },
-                    { pattern: /^[a-zA-Z0-9_一-龥]+$/, message: '仅字母、数字、下划线和中文' },
+                    { required: true, message: '请输入邮箱' },
+                    { type: 'email', message: '邮箱格式不正确' },
                   ]}
                 >
-                  <Input prefix={<UserOutlined />} placeholder="用户名" autoComplete="username" />
+                  <Input prefix={<MailOutlined />} placeholder="邮箱" autoComplete="email" />
                 </Form.Item>
                 <Form.Item
                   name="nickname"
                 >
-                  <Input prefix={<UserOutlined />} placeholder="昵称（选填，默认同用户名）" />
+                  <Input prefix={<UserOutlined />} placeholder="昵称（选填，默认取邮箱前缀）" />
                 </Form.Item>
                 <Form.Item
                   name="password"
