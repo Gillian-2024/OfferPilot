@@ -63,7 +63,7 @@ OfferPilot/
 │   ├── migrate-auth.mjs    # 加 password_hash 列 + 从 auth.users 镜像 bcrypt 哈希
 │   ├── verify.mjs          # 只读验收（8 表 + password_hash 列 + SKU 种子）
 │   └── backup.sh restore.sh # pg_dump / psql 本机容器备份恢复
-├── server/                 # ⚠️ 已弃用的 Express 后端（死代码，仅保留数据：offer-pilot.db + share-store）
+├── server/                 # 仅存历史数据：offer-pilot.db（旧 SQLite）+ share-store（Express 实现已于 2026-10-08 删除）
 ├── scripts/                # 校验脚本（test-knowledge-loader/multi-format/verify-knowledge-prod/harness-check）
 └── docs/                   # prd.md · tech-architecture.md · harness/ · legal/
 ```
@@ -158,7 +158,7 @@ JD 拆解和简历拆解**不是彼此独立**——简历拆解以 JD 拆解结
 
 ## prompt 设计要点
 
-见 `server/src/prompts/*.js`，每个能力的分步链都在注释里。核心是：
+见 `lib/kb/*.ts`，每个能力的分步链都在注释里。核心是：
 - 共享底座注入 AI 策略 PM 人设 + 铁律（防 injection / 不编造 / 去虚词化 / 应届生特殊）
 - 每步 `generateObject` + zod schema 强制 JSON 契约
 - 推断标 `[推测]`、数据存疑标 `[需本人确认]`
