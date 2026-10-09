@@ -10,8 +10,8 @@
 | JD 拆解 | 把岗位描述拆成需求文档（3 节点：岗位定位/硬性要求/筛选优先级） |
 | 简历拆解 | 简历对照 JD 拆解结果的 4 节点链 + 逐段改写；JD 未拆时降级"非对照模式" |
 | 面试复盘 | 模拟面试对话（review/prep 双模式），SSE 流式 |
-| 知识注入 | 知识原件加密为 `server/.knowledge.enc` 由服务端解密注入 system prompt |
-| 双轨制 API key | server/.env 默认 + 前端「模型设置」header 覆盖（x-provider/x-api-key/…） |
+| 提示词 | 方法论已提炼内联到 `lib/kb/*.ts` 的 system prompt，静态 import，无运行时加载/解密 |
+| 双轨制 API key | 根 `.env.local` 默认 + 前端「模型设置」header 覆盖（x-provider/x-api-key/…） |
 
 ## 安全收口（docs/harness/safety.md 相关）
 

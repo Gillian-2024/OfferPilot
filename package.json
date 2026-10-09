@@ -2,7 +2,7 @@
   "name": "offer-pilot",
   "version": "0.2.0",
   "private": true,
-  "description": "应届生校招求职辅助 · JD拆解/简历拆解/面试复盘 (Next.js App Router + Supabase + Vercel)",
+  "description": "应届生校招求职辅助 · JD拆解/简历拆解/面试复盘 (Next.js 16 + Vite SPA + PostgreSQL)",
   "type": "module",
   "scripts": {
     "dev": "next dev",

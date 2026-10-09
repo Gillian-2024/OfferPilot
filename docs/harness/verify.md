@@ -2,9 +2,11 @@
 
 ## 改代码前自检（三关）
 
-1. `npm test` —— 服务端测试全绿（root 已挂 `cd server && node --test`，裸跑自动发现全部测试文件；`node --test test/` 目录参数会 MODULE_NOT_FOUND，勿改回）
-2. `npm run check` —— 安全回归硬门禁 exit 0
-3. `cd client && npx tsc --noEmit` —— 前端类型检查（**勿在 server/ 跑 npx tsc**，会拉到废弃 tsc@2.0.4 假 PASS）
+1. `node --test test/*.test.mjs` —— 单元测试全绿（用 glob；`node --test test/` 目录参数会 MODULE_NOT_FOUND）
+2. `npm run typecheck` —— 根目录类型检查（Next 侧 `app/` `lib/`）
+3. `cd client && npx tsc --noEmit` —— 前端类型检查
+
+> 2026-10-08 Express 实现删除后，原 `npm test`（server/test）与 `npm run check`（harness-check 静态扫描）已随之失效；下方变更记录中的 `auth.js` / `index.js` 等文件名为 Express 时代历史。
 
 ## 安全收口变更记录（2026-08-29）
 
