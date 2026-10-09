@@ -3,11 +3,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAppUser, getAppUser, findUserByEmail } from "@/lib/db/user";
 import { hashPassword } from "@/lib/auth/password";
 import { setSessionCookie } from "@/lib/db/auth";
+import { authIpHit, clientIp, tooMany } from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
+  // 防刷注册 / 借「该邮箱已注册」枚举账号：与登录共用 IP 桶
+  const ipRetry = authIpHit(clientIp(req.headers));
+  if (ipRetry) return tooMany(ipRetry);
+
   const body = await req.json().catch(() => null);
   const email = String(body?.email || "").trim().toLowerCase();
   const password = String(body?.password || "");

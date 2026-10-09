@@ -57,7 +57,7 @@ node --test test/*.test.mjs      # 单元测试（需 Node 22.6+ 直接加载 .t
 2. CORS 关闭（无跨域合法流量）
 3. user 消息必须包 `<user-content>` 注入边界
 4. history upsert 必须带归属条件（不覆盖他人）
-5. 全站限流 + 登录/注册严限 —— ⚠️ **Next 迁移后未落地**：目前只有 `/api/analytics/batch` 有进程内限流，登录/注册无限流（Express 时代的 rateLimit 未移植）。重新上线前须补。
+5. 登录/注册限流（`lib/rateLimit.ts`）：每 IP 15 分钟 30 次；同一邮箱登录失败 10 次锁定 15 分钟，成功清零。IP 取 Nginx 写入的 `X-Real-IP`，前提是 Next 只监听 127.0.0.1。进程内计数，多实例部署需换 Redis。全站 API 兜底限流尚未做。
 
 ## 渐进演进
 
