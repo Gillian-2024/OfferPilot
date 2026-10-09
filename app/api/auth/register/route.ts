@@ -11,6 +11,8 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
   const email = String(body?.email || "").trim().toLowerCase();
   const password = String(body?.password || "");
+  // 昵称选填：去首尾空白、截 32 字；未填回落邮箱前缀
+  const nickname = String(body?.nickname || "").trim().slice(0, 32) || email.split("@")[0] || email;
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return NextResponse.json({ error: "邮箱格式不正确" }, { status: 400 });
@@ -23,7 +25,7 @@ export async function POST(req: NextRequest) {
 
   const id = crypto.randomUUID();
   const passwordHash = await hashPassword(password);
-  await createAppUser({ id, email, nickname: email.split("@")[0] || email, passwordHash });
+  await createAppUser({ id, email, nickname, passwordHash });
   const appUser = await getAppUser({ id, email });
   const res = NextResponse.json({ user: appUser });
   await setSessionCookie(res, { userId: id, email });

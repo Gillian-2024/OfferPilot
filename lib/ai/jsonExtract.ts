@@ -25,8 +25,48 @@ function likelyNotJson(text: string): boolean {
   return !text.includes('{') && !text.includes('[');
 }
 
+// 修复字符串值里未转义的英文双引号（线上头号报错：模型写「字面的"Java开发"实际是…」）。
+// 在字符串内遇到 " 时向后看：后面是 : } ] 或「, 再接 " } ]」才视为真结束引号，否则转义成 \"。
+function escapeStrayQuotes(text: string): string {
+  let out = '';
+  let inStr = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (!inStr) {
+      if (ch === '"') inStr = true;
+      out += ch;
+      continue;
+    }
+    if (ch === '\\') {
+      out += ch + (text[i + 1] ?? '');
+      i++;
+      continue;
+    }
+    if (ch !== '"') {
+      out += ch;
+      continue;
+    }
+    let j = i + 1;
+    while (j < text.length && /\s/.test(text[j])) j++;
+    const next = text[j];
+    let closes = next === undefined || next === ':' || next === '}' || next === ']';
+    if (next === ',') {
+      let k = j + 1;
+      while (k < text.length && /\s/.test(text[k])) k++;
+      closes = text[k] === undefined || '"}]{[-0123456789tfn'.includes(text[k]);
+    }
+    if (closes) {
+      inStr = false;
+      out += ch;
+    } else {
+      out += '\\"';
+    }
+  }
+  return out;
+}
+
 // 从模型文本输出里抽出 JSON 并用 zod schema 校验。
-// 失败时最多重试一次，应对模型偶尔输出格式不稳。
+// 第一次按原文解析；失败则修复未转义引号后再解析一次。
 export function extractAndParse(text: string, schema: any, maxRetries = MAX_RETRY_ATTEMPTS): any {
   if (!text || !text.trim()) {
     throw new Error('模型返回空文本，无法解析为 JSON');
@@ -35,28 +75,18 @@ export function extractAndParse(text: string, schema: any, maxRetries = MAX_RETR
   let lastError: any;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      const cleaned = cleanForJson(text);
+      let cleaned = cleanForJson(text);
+      if (attempt > 0) cleaned = escapeStrayQuotes(cleaned);
       const parsed = JSON.parse(cleaned);
       const result = schema.safeParse(parsed);
       if (result.success) return result.data;
       lastError = result.error;
+      break; // 结构已能解析、只是字段不符 —— 修引号无助于 schema 校验
     } catch (e) {
       lastError = e;
     }
-    if (attempt === 0) {
-      if (likelyNotJson(text)) {
-        break; // 无需重试 — 第二次也只会再收到同一条自然语言
-      }
-      const braceStart = text.indexOf('{');
-      const bracketStart = text.indexOf('[');
-      const firstBrace = braceStart >= 0 ? (bracketStart >= 0 ? Math.min(braceStart, bracketStart) : braceStart) : bracketStart;
-      if (firstBrace >= 0) {
-        const closeIdx = Math.max(
-          text.lastIndexOf('}', firstBrace + 2000),
-          text.lastIndexOf(']', firstBrace + 2000)
-        );
-        if (closeIdx > firstBrace) text = text.slice(firstBrace, closeIdx + 1);
-      }
+    if (attempt === 0 && likelyNotJson(text)) {
+      break; // 无需重试 — 自然语言修引号也解析不了
     }
   }
 
