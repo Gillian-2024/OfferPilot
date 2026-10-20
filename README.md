@@ -1,6 +1,7 @@
 # OfferPilot 领航员
 
 > **状态：暂停开发**（2026-10-08 起）。架构为 Next.js 16 + Vite SPA + 原生 PostgreSQL + 自有 JWT，本地可完整运行。
+> - 新手部署：见 [从 GitHub SSH 拉取到独立网站 SOP](docs/guides/deploy-from-github-sop.md)
 > - 产品定位与能力：见 [`docs/prd.md`](docs/prd.md)
 > - 技术实现 / 表结构 / 迁移脚本：见 [`docs/tech-architecture.md`](docs/tech-architecture.md)
 > - 数据库：Docker 自建 PostgreSQL（`db/docker-compose.yml`，本机与服务器同构）。
